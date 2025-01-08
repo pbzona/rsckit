@@ -23,11 +23,14 @@ export function createParserFunction<T = Collection<any>, R = any>(
   return (j: JSCodeshift, input: T) => fn(j, input);
 }
 
-const isDeclarationFile = (filePath: string) => /\.d\.(m|c)?ts$/.test(filePath);
-const isTsFile = (filePath: string) => /\.(m|c)?.ts$/.test(filePath);
-const isTsxFile = (filePath: string) => /\.(m|c)?.tsx$/.test(filePath);
-const isJsFile = (filePath: string) => /\.(m|c)?.js$/.test(filePath);
-const isJsxFile = (filePath: string) => /\.(m|c)?.jsx$/.test(filePath);
+// Uglier but works
+const isDeclarationFile = (filePath: string) => (
+  path.parse(filePath).name.endsWith('.d') && path.parse(filePath).ext === '.ts'
+);
+const isTsFile = (filePath: string) => path.parse(filePath).ext === '.ts';
+const isTsxFile = (filePath: string) => path.parse(filePath).ext === '.tsx';
+const isJsFile = (filePath: string) => path.parse(filePath).ext === '.js';
+const isJsxFile = (filePath: string) => path.parse(filePath).ext === '.jsx';
 
 export function chooseParser(filePath: string) {
   if (isDeclarationFile(filePath)) {
@@ -51,12 +54,10 @@ export function chooseParser(filePath: string) {
  * @returns `true` if the file path has a .tsx, .jsx, or .js extension, otherwise `false`.
  */
 export function mightContainReactComponent(filePath: string) {
-  // Todo: fix this!!!
   return isTsxFile(filePath) ||
     isJsxFile(filePath) ||
     isJsFile(filePath);
 }
-
 
 /**
  * Checks if the source code contains the "use client" directive.
@@ -212,10 +213,10 @@ export function createFileFinder(
 // Find page.{js,jsx,tsx} files in a Next.js project
 export const findPages = createFileFinder(
   (pathname: string, dirent: Dirent) => {
-    const { name, ext } = path.parse(pathname);
+    const { name } = path.parse(pathname);
     return (
       // This *should* handle everything
-      dirent.isFile() && name === 'page' && ['.tsx', '.jsx', '.js'].includes(ext)
+      dirent.isFile() && name === 'page' && mightContainReactComponent(pathname)
     );
   },
   (pathname: string, dirent: Dirent) => {

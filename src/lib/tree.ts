@@ -16,6 +16,9 @@ export const getDependencyTree = (file: string, projectRoot: string, relative = 
     filename: file,
     directory: projectRoot,
     tsConfig,
+    nodeModulesConfig: {
+      entry: 'any'
+    },
     filter: (file) => mightContainReactComponent(file),
     detectiveConfig: {
       typescript: true

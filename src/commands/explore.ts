@@ -1,8 +1,16 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { debug, printHeading, printMessage, printMessageListItem } from '@/lib/output';
-import { findPages, } from '@/lib/parser';
+import {
+  printError,
+  printHeading,
+  printMessage,
+  printMessageListItem,
+  printNewLine,
+  printStat
+} from '@/lib/output';
+import { findPages } from '@/lib/parser';
 import { flatten, getDependencyTree } from '@/lib/tree';
+import { getAppDirFromRoot } from '@/lib/utils';
 
 // hard coded for now, who cares
 interface ExploreOptions {
@@ -38,28 +46,37 @@ export async function exploreCmd(options: ExploreOptions) {
 
     // 1) Find all pages in app directory
     printHeading('Finding all Next.js app router pages...');
-    const appDirectory = path.resolve(_projectDir, 'app');
+
+    const appDirectory = await getAppDirFromRoot(_projectDir);
     const pages = await findPages(appDirectory);
     for (const page of pages) {
       // 2) Generate a dependency tree for each page
       printMessage(`Generating dependency tree for ${page}...`);
-      const tree = getDependencyTree(page, _projectDir);
+      const tree = getDependencyTree(page, _projectDir, true);
       result.dependencyTrees[page] = tree;
 
       // 3) Flatten and get unique dependencies
       printMessage('Flattening and filtering dependencies...');
       const separator = "..";
       const deps = flatten(tree, separator);
-      const uniqueDeps = new Set();
+      const uniqueDeps = [];
 
       for (const filePath of Object.keys(deps)) {
         const nestedLayers = filePath.split(separator);
-        uniqueDeps.add(nestedLayers[nestedLayers.length - 1]);
+        uniqueDeps.push(nestedLayers[nestedLayers.length - 1]);
       }
 
-      result.dependencies = [...result.dependencies, ...Array.from(uniqueDeps)];
+      // Filters out duplicates
+      result.dependencies = Array.from(
+        new Set([result.dependencies, uniqueDeps].flat())
+      );
     }
 
+    printNewLine();
+    printHeading('Your project:');
+    printStat({ stat: 'Pages', value: pages.length });
+    printStat({ stat: 'First-party components', value: result.dependencies.length });
+    printNewLine();
     printHeading('Writing files:');
     printMessageListItem(path.basename(dependencyTreesFile));
     printMessageListItem(path.basename(dependenciesFile));
@@ -70,7 +87,7 @@ export async function exploreCmd(options: ExploreOptions) {
     if (error instanceof Error) {
       throw error;
     }
-    console.error(error);
+    printError(error,);
   } finally {
     process.chdir(here);
   }

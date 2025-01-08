@@ -68,7 +68,15 @@ To test this, be sure to run `pnpm install` if you've made any changes and rebui
 
 ### CLI
 
-Not working yet. In the future, this will index and analyze the structure of your Next.js project - for example, finding and instrumenting client components via a codemod. For now, you can find client components manually:
+Currently this is just a file crawler and component dependency checker. It will show the number of page.tsx files in your app directory (accounts for other valid extensions as well). You can run it using the `explore` command:
+
+```sh
+rsckit explore --projectDir "/path/to/your-project" --outputDir "./rsckit-reports"
+```
+
+Use the `--help` flag for more details.
+
+In the future, this will index and analyze the structure of your Next.js project - for example, finding and instrumenting client components via a codemod. For now, you can find client components manually:
 
 ```sh
 grep 'use client' ./**/*.(js|jsx|tsx)
@@ -81,3 +89,13 @@ There are other ways to do this, use whatever tools you're comfortable with.
 ## Why?
 
 The inspiration for this project was to help pinpoint the source of large RSC payloads. One of the way RSC payloads can become bloated is by passing large objects as props from server to client components. Further explanations of this concept are forthcoming - stay tuned!
+
+## FAQ
+
+### Will this fix my app/perf/hosting bill?
+
+No, but it might help you figure out where to start fixing it yourself.
+
+### Can't you do this with AI?
+
+Absolutely. This is a deterministic solution that lets you see exactly how everything is calculated, which might be preferred in some cases.
