@@ -71,7 +71,7 @@ To test this, be sure to run `pnpm install` if you've made any changes and rebui
 Currently this is just a file crawler and component dependency checker. It will show the number of page.tsx files in your app directory (accounts for other valid extensions as well). You can run it using the `explore` command:
 
 ```sh
-rsckit explore --projectDir "/path/to/your-project" --outputDir "./rsckit-reports"
+pnpm rsckit:explore --projectDir "/path/to/your-project" --outputDir "./rsckit-reports"
 ```
 
 Use the `--help` flag for more details.

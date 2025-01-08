@@ -21,7 +21,8 @@
     "dev": "tsup --watch --ignore-watch **/*.test.ts",
     "lint": "biome lint src",
     "format": "biome format src --write",
-    "test": "jest"
+    "test": "jest",
+    "rsckit:explore": "./bin/cli.cjs explore"
   },
   "engines": {
     "node": ">=18.18.0"
