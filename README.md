@@ -99,3 +99,13 @@ No, but it might help you figure out where to start fixing it yourself.
 ### Can't you do this with AI?
 
 Absolutely. This is a deterministic solution that lets you see exactly how everything is calculated, which might be preferred in some cases.
+
+## Roadmap
+
+This is an intentionally unordered list:
+
+- Tests 👼
+- Module caching
+- Third party component analysis
+- Custom prop checking functions
+- Client-side rendering analysis
