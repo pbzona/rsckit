@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Environment variables/Users/phil/Vercel/Experiments/rscpd/.gitignore
+.env
+
+# Logs
+logs/
+*.log
+pnpm-debug.log*
+
+# Local dev stuff
+tmp/
+rsckit/*.json
+
+# Annoying
+.DS_Store
+
