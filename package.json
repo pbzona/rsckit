@@ -22,7 +22,6 @@
     "lint": "biome lint src",
     "format": "biome format src --write",
     "test": "jest",
-    "rsckit:explore": "./bin/cli.cjs explore",
     "rsckit:analyze": "./bin/cli.cjs analyze",
     "prepare": "husky"
   },
