@@ -52,7 +52,7 @@ export async function exploreCmd(options: ExploreOptions) {
     for (const page of pages) {
       // 2) Generate a dependency tree for each page
       printMessage(`Generating dependency tree for ${page}...`);
-      const tree = getDependencyTree(page, _projectDir, true);
+      const tree = getDependencyTree(page, _projectDir);
       result.dependencyTrees[page] = tree;
 
       // 3) Flatten and get unique dependencies

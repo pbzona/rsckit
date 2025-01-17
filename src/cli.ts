@@ -1,8 +1,11 @@
 #!/usr/bin/env node
+import path from 'node:path';
 import { Command } from "commander";
 import { exploreCmd } from './commands/explore';
+import { ModuleCache } from './lib/cache';
 
 async function main() {
+  ModuleCache.init();
   const program = new Command();
 
   program

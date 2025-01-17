@@ -1,12 +1,19 @@
 import { Dirent } from 'node:fs';
 import path from 'node:path';
 import Walk from "@root/walk";
-import type { Collection, JSCodeshift, VariableDeclarator } from "jscodeshift";
+import jscodeshift, { API, Collection, JSCodeshift, VariableDeclarator } from "jscodeshift";
 import babylonParse from 'jscodeshift/parser/babylon.js';
 import tsParse from 'jscodeshift/parser/ts.js';
 import tsxParse from 'jscodeshift/parser/tsx.js';
-import { debug } from './output';
 import { ExportDetails, ParserFunction } from './types';
+
+// Create a jscodeshift API object
+export const api: API = {
+  j: jscodeshift,
+  jscodeshift,
+  stats: () => { },
+  report: () => { } // might be useful later
+};
 
 /**
  * Creates a helper function that wraps the provided function.
@@ -32,6 +39,22 @@ const isTsxFile = (filePath: string) => path.parse(filePath).ext === '.tsx';
 const isJsFile = (filePath: string) => path.parse(filePath).ext === '.js';
 const isJsxFile = (filePath: string) => path.parse(filePath).ext === '.jsx';
 
+/**
+ * Chooses the appropriate parser based on the file path.
+ *
+ * @param filePath - The path of the file to be parsed.
+ * @returns The parser function to be used for the given file.
+ *
+ * The function first checks if the file is a declaration file and returns the Babylon parser if true.
+ * If the file is not a declaration file, it determines the parser based on the file extension:
+ * - For TypeScript files (.ts, .mts, .cts), it returns the TypeScript parser.
+ * - For JavaScript and JSX files (.js, .jsx, .tsx), it returns the TSX parser.
+ *
+ * @remarks
+ * JSX is allowed in .js files, so they are fed into the TSX parser.
+ *
+ * @see https://github.com/vercel/next.js/pull/71122
+ */
 export function chooseParser(filePath: string) {
   if (isDeclarationFile(filePath)) {
     return babylonParse();
