@@ -18,6 +18,7 @@ pnpm-debug.log*
 # Local dev stuff
 tmp/
 rsckit/*.json
+.rsckit
 
 # Annoying
 .DS_Store

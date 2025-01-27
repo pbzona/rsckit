@@ -10,6 +10,7 @@ function createPrinter(callable: Printer = msg => msg, prefix = '', consoleMetho
 }
 
 export const printHeading = createPrinter(chalk.bold.blueBright);
+export const printHeadingAlt = createPrinter(chalk.bold.yellow);
 export const printMessage = createPrinter();
 export const printNewLine = () => console.log();
 export const printMessageListItem = createPrinter(msg => msg, '- ');

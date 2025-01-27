@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import {
   printError,
   printHeading,
+  printHeadingAlt,
   printMessage,
   printMessageListItem,
   printNewLine,
@@ -11,6 +12,7 @@ import {
 import { findPages } from '@/lib/parser';
 import { flatten, getDependencyTree } from '@/lib/tree';
 import { getAppDirFromRoot } from '@/lib/utils';
+import { ModuleCache } from '@/lib/cache';
 
 // hard coded for now, who cares
 interface ExploreOptions {
@@ -19,20 +21,20 @@ interface ExploreOptions {
 }
 
 export async function exploreCmd(options: ExploreOptions) {
+  const cache = ModuleCache.get();
   const here = process.cwd();
 
   // Resolve options
   const _projectDir = options.projectDir ?
     path.resolve(here, options.projectDir) : here;
   const _outputDir = options.outputDir ?
-    path.resolve(_projectDir, options.outputDir) : path.resolve(here, 'rsckit');
+    path.resolve(_projectDir, options.outputDir) : path.resolve('.rsckit');
 
   try {
     await fs.mkdir(_outputDir, { recursive: true });
 
     const dependencyTreesFile = path.resolve(_outputDir, 'dependency-trees.json');
     const dependenciesFile = path.resolve(_outputDir, 'dependencies.json');
-    const clientComponentsFile = path.resolve(_outputDir, 'client-components.json');
 
     const result = {
       dependencyTrees: {},
@@ -50,10 +52,13 @@ export async function exploreCmd(options: ExploreOptions) {
     const appDirectory = await getAppDirFromRoot(_projectDir);
     const pages = await findPages(appDirectory);
     for (const page of pages) {
+      printHeadingAlt(page);
+
       // 2) Generate a dependency tree for each page
-      printMessage(`Generating dependency tree for ${page}...`);
+      printMessage('Generating dependency tree...');
       const tree = getDependencyTree(page, _projectDir);
       result.dependencyTrees[page] = tree;
+      cache.addDependencyTree(tree);
 
       // 3) Flatten and get unique dependencies
       printMessage('Flattening and filtering dependencies...');
@@ -83,11 +88,13 @@ export async function exploreCmd(options: ExploreOptions) {
 
     await fs.writeFile(dependencyTreesFile, JSON.stringify(result.dependencyTrees, null, 2));
     await fs.writeFile(dependenciesFile, JSON.stringify(result.dependencies, null, 2));
+
+    await cache.writeToDisk();
   } catch (error) {
     if (error instanceof Error) {
       throw error;
     }
-    printError(error,);
+    printError(error);
   } finally {
     process.chdir(here);
   }

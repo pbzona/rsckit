@@ -6,6 +6,7 @@ import { printMessage, printSuccess } from './output';
 import { flatten } from "./tree";
 
 const DEFAULT_CACHE_DIRECTORY = '.rsckit';
+const DEFAULT_CACHE_FILE = 'module-cache.json';
 
 type DependencySet = Set<string>;
 type DependencyTree = Tree;
@@ -34,15 +35,17 @@ export class ModuleCache {
   private _dependencyTrees: DependencyTrees;
 
   private constructor(location: string) {
-    this._location = path.resolve(process.cwd(), location, "module-cache.json");
+    this._location = path.resolve(process.cwd(), location);
     mkdirSync(this._location, { recursive: true });
+    this._location = path.resolve(this._location, DEFAULT_CACHE_FILE);
 
-    if (existsSync(this._location)) {
+    printMessage(`Cache location: ${this._location}`);
+    this.initializeCache();
+    
+    try {
       this.restoreFromDisk();
-    } else {
+    } catch (_) {
       printMessage('No existing module cache data to restore, creating a fresh instance');
-      this._dependencies = new Set();
-      this._dependencyTrees = {};
     }
   }
 
@@ -58,6 +61,11 @@ export class ModuleCache {
       throw new Error('Module cache has not been initialized yet');
     }
     return ModuleCache.instance;
+  }
+
+  private initializeCache() {
+    this._dependencies = new Set();
+    this._dependencyTrees = {};
   }
 
   public getDependencySet(): DependencySet {
@@ -91,6 +99,7 @@ export class ModuleCache {
     try {
       const filePath = Object.keys(tree)[0];
       this._dependencyTrees[filePath] = tree;
+      this.computeUniqueDependencies(tree);
     } catch (error) {
       throw new Error('Could not add dependency tree', {
         cause: error
@@ -129,7 +138,7 @@ export class ModuleCache {
   public async restoreFromDisk() {
     try {
       const fileContent = await fs.readFile(this._location, 'utf-8');
-      const parsedContent = JSON.parse(fileContent) as SerializedCache;
+      const parsedContent = JSON.parse(fileContent);
 
       if (!isSerializedCache(parsedContent)) {
         throw new Error('Cache data does not match the expected serialization format');
@@ -137,7 +146,7 @@ export class ModuleCache {
 
       const { dependencies, dependencyTrees } = parsedContent;
       JSON.parse(dependencies).forEach(dep => this._dependencies.add(dep));
-      Object.assign(this._dependencyTrees, dependencyTrees);
+      Object.assign(this._dependencyTrees, JSON.parse(dependencyTrees));
     } catch (error) {
       if (error instanceof Error) {
         throw new Error('Unable to restore cache from disk', {
