@@ -13,6 +13,7 @@ import { findPages } from '@/lib/parser';
 import { flatten, getDependencyTree } from '@/lib/tree';
 import { getAppDirFromRoot } from '@/lib/utils';
 import { ModuleCache } from '@/lib/cache';
+import { findReactComponentFiles } from '@/lib/files';
 
 // hard coded for now, who cares
 interface ExploreOptions {
@@ -49,8 +50,9 @@ export async function exploreCmd(options: ExploreOptions) {
     // 1) Find all pages in app directory
     printHeading('Finding all Next.js app router pages...');
 
-    const appDirectory = await getAppDirFromRoot(_projectDir);
-    const pages = await findPages(appDirectory);
+    //const appDirectory = await getAppDirFromRoot(_projectDir);
+    const pages = await findReactComponentFiles("page");
+    console.log(pages)
     for (const page of pages) {
       printHeadingAlt(page);
 
