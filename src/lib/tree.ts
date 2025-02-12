@@ -1,6 +1,9 @@
 import path from 'node:path';
+import * as fs from "node:fs/promises"
 import dependencyTree, { Tree, TreeInnerNode } from "dependency-tree";
 import { mightContainReactComponent } from './parser';
+import detective from 'detective-typescript'
+import cabinet from 'filing-cabinet';
 
 /**
  * Generates a dependency tree for a given file within a project.
@@ -26,6 +29,30 @@ export const getDependencyTree = (file: string, projectRoot: string, relative = 
   });
   return relative ? createRelativePathTree(tree, projectRoot) : tree;
 };
+
+// Todo: instead of generating a full tree in one shot, do it file by file and
+// create an adjacency list that can recursively create a tree from. This will
+// enable faster analysis when working from cache
+export const getDependencies = async (file: string, projectRoot: string) => {
+  const tsConfig = path.join(projectRoot, "tsconfig.json");
+  const source = await fs.readFile(file, 'utf8');
+  const deps = detective(source, {
+    jsx: true,
+    skipAsyncImports: true
+  });
+
+  return deps.map(d => (
+    cabinet({
+      partial: d,
+      filename: file,
+      directory: projectRoot,
+      tsConfig,
+      nodeModulesConfig: {
+        entry: "any"
+      }
+    })
+  ))
+}
 
 /**
  * Converts an absolute path tree to a relative path tree based on a given base directory.

@@ -137,6 +137,9 @@ export class ModuleCache {
 
   public async restoreFromDisk() {
     try {
+      if (!existsSync(this._location)) {
+        return;
+      }
       const fileContent = await fs.readFile(this._location, 'utf-8');
       const parsedContent = JSON.parse(fileContent);
 

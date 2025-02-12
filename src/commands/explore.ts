@@ -10,7 +10,7 @@ import {
   printStat
 } from '@/lib/output';
 import { findPages } from '@/lib/parser';
-import { flatten, getDependencyTree } from '@/lib/tree';
+import { flatten, getDependencyTree, getDependencies } from '@/lib/tree';
 import { getAppDirFromRoot } from '@/lib/utils';
 import { ModuleCache } from '@/lib/cache';
 import { findReactComponentFiles } from '@/lib/files';
@@ -55,6 +55,11 @@ export async function exploreCmd(options: ExploreOptions) {
     console.log(pages)
     for (const page of pages) {
       printHeadingAlt(page);
+
+      // Todo - use this instead to create adjacency lists and construct the 
+      // full tree myself for faster reading from cache
+      const _deps = await getDependencies(page, _projectDir);
+      console.log(_deps)
 
       // 2) Generate a dependency tree for each page
       printMessage('Generating dependency tree...');
