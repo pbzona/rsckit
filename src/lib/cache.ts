@@ -30,6 +30,7 @@ function isSerializedCache(obj: unknown): obj is SerializedCache {
 
 export class ModuleCache {
   private static instance: ModuleCache;
+  private _projectDir: string;
   private _location: string;
   private _dependencies: DependencySet;
   private _dependencyTrees: DependencyTrees;
@@ -41,7 +42,7 @@ export class ModuleCache {
 
     printMessage(`Cache location: ${this._location}`);
     this.initializeCache();
-    
+
     try {
       this.restoreFromDisk();
     } catch (_) {
@@ -66,6 +67,10 @@ export class ModuleCache {
   private initializeCache() {
     this._dependencies = new Set();
     this._dependencyTrees = {};
+  }
+
+  public setProjectDir(projectDir: string) {
+    this._projectDir = projectDir;
   }
 
   public getDependencySet(): DependencySet {

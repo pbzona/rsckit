@@ -14,6 +14,7 @@ import { flatten, getDependencyTree, getDependencies } from '@/lib/tree';
 import { getAppDirFromRoot } from '@/lib/utils';
 import { ModuleCache } from '@/lib/cache';
 import { findReactComponentFiles } from '@/lib/files';
+import { Command } from 'commander';
 
 // hard coded for now, who cares
 interface ExploreOptions {
@@ -21,7 +22,15 @@ interface ExploreOptions {
   outputDir?: string;
 }
 
-export async function exploreCmd(options: ExploreOptions) {
+export function registerExploreCommand(program: Command) {
+  program.command('explore')
+    .description('Crawl your project and generate reports on its component structure')
+    .option('-p, --projectDir <string>', 'the root of your Next.js project')
+    .option('-o, --outputDir <string>', 'the output directory for reports (default current dir)')
+    .action((options) => handler(options));
+}
+
+async function handler(options: ExploreOptions) {
   const cache = ModuleCache.get();
   const here = process.cwd();
 
@@ -30,6 +39,8 @@ export async function exploreCmd(options: ExploreOptions) {
     path.resolve(here, options.projectDir) : here;
   const _outputDir = options.outputDir ?
     path.resolve(_projectDir, options.outputDir) : path.resolve('.rsckit');
+
+  cache.setProjectDir(_projectDir);
 
   try {
     await fs.mkdir(_outputDir, { recursive: true });
@@ -52,7 +63,7 @@ export async function exploreCmd(options: ExploreOptions) {
 
     //const appDirectory = await getAppDirFromRoot(_projectDir);
     const pages = await findReactComponentFiles("page");
-    console.log(pages)
+
     for (const page of pages) {
       printHeadingAlt(page);
 

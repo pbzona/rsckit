@@ -22,7 +22,8 @@
     "lint": "biome lint src",
     "format": "biome format src --write",
     "test": "jest",
-    "rsckit:explore": "./bin/cli.cjs explore"
+    "rsckit:explore": "./bin/cli.cjs explore",
+    "rsckit:analyze": "./bin/cli.cjs analyze"
   },
   "keywords": [
     "react",
@@ -46,6 +47,7 @@
   },
   "dependencies": {
     "@root/walk": "^1.1.0",
+    "@swc/core": "^1.10.18",
     "chalk": "^5.4.1",
     "commander": "^13.0.0",
     "dependency-tree": "^11.0.1",
@@ -53,7 +55,8 @@
     "filing-cabinet": "^5.0.3",
     "globby": "^14.0.2",
     "jscodeshift": "^17.1.1",
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "zod": "^3.24.2"
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

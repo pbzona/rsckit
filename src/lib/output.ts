@@ -1,4 +1,4 @@
-import chalk, { ChalkInstance } from 'chalk';
+import chalk from 'chalk';
 
 type Printer = (msg?: string | number | Stat) => void;
 type ConsoleMethod = 'log' | 'warn' | 'error';
