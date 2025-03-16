@@ -68,10 +68,10 @@ To test this, be sure to run `pnpm install` if you've made any changes and rebui
 
 ### CLI
 
-Currently this is just a file crawler and component dependency checker. It will show the number of page.tsx files in your app directory (accounts for other valid extensions as well). You can run it using the `explore` command:
+Currently this is just a file crawler and component dependency checker. It will show the number of page.tsx files in your app directory (accounts for other valid extensions as well). You can run it using the `analyze` command:
 
 ```sh
-pnpm rsckit:explore --projectDir "/path/to/your-project" --outputDir "./rsckit-reports"
+pnpm rsckit:analyze --projectDir "/path/to/your-project" 
 ```
 
 Use the `--help` flag for more details.
@@ -88,17 +88,19 @@ There are other ways to do this, use whatever tools you're comfortable with.
 
 ## Why?
 
-The inspiration for this project was to help pinpoint the source of large RSC payloads. One of the way RSC payloads can become bloated is by passing large objects as props from server to client components. Further explanations of this concept are forthcoming - stay tuned!
+The inspiration for this project was to help pinpoint the source of large RSC payloads. One of the way RSC payloads can become bloated is by passing large objects as props from server to client components.
+
+If you're not familiar with this problem, check out this guide in the Vercel docs: [How to optimize RSC payload size](https://vercel.com/guides/how-to-optimize-rsc-payload-size).
 
 ## FAQ
 
 ### Will this fix my app/perf/hosting bill?
 
-No, but it might help you figure out where to start fixing it yourself.
+No, but it might help you figure out where to start optimization efforts.
 
 ### Can't you do this with AI?
 
-Absolutely. This is a deterministic solution that lets you see exactly how everything is calculated, which might be preferred in some cases.
+In some cases yes. This is a deterministic solution that lets you see exactly how everything is calculated, which might be preferred in many cases. RSCs are a new enough primitive that many LLMs don't always get the details right. This code was written by a human who understands how they work.
 
 ## Roadmap
 
