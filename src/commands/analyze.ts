@@ -9,6 +9,7 @@ import { Config } from "@/config";
 
 interface Options {
   projectDir?: string;
+  skipCache?: boolean;
 }
 
 export const registerAnalyzeCommand = (program: Command) => {
@@ -16,6 +17,7 @@ export const registerAnalyzeCommand = (program: Command) => {
     .command("analyze")
     .description("Crawl your project to prepare it for querying and reporting")
     .option("-p, --projectDir <string>", "the root of your Next.js project")
+    .option("--skipCache", "do not read cached results from disk before parsing")
     .action((options) => analyzeCommandHandler(options));
 }
 
@@ -25,6 +27,7 @@ const analyzeCommandHandler = async (options: Options) => {
   // Resolve options
   const _projectDir = options.projectDir ?
     path.resolve(here, options.projectDir) : Config.projectDirectory;
+  const _skipCache = !!options.skipCache
 
   // Need to temporarily change dir for globbing to work 
   // for some reason (??), will fix this eventually
@@ -32,6 +35,10 @@ const analyzeCommandHandler = async (options: Options) => {
 
   try {
     const cache = new Cache<Dependency[]>();
+    if (!_skipCache) {
+      await cache.restoreFromStorage()
+    }
+
     const project = await Project.init(_projectDir);
     Parser.init(project);
 
@@ -44,7 +51,8 @@ const analyzeCommandHandler = async (options: Options) => {
       await p.buildGraph();
     }
 
-    console.log(JSON.parse(cache.serialize()))
+    //console.log(JSON.parse(cache.serialize()))
+    await cache.writeToStorage();
   } catch (error) {
     throw error;
   } finally {

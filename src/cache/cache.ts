@@ -1,6 +1,8 @@
+import { existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { Serializable, serializeMap } from "@/lib/serialize";
+import { deserializeMap, Serializable, serializeMap } from "@/lib/serialize";
+import { Config } from "@/config";
 
 interface Store<T> {
   get: (k: string) => T;
@@ -15,6 +17,7 @@ export class Cache<T> implements Serializable {
   // weird typing on store because of how I wrote serialize functions
   // iniitially, need to fix this
   private store: Store<T> = new Map<string, T>();
+  private cacheFile: string = "cache.json";
 
   constructor() {
     if (!Cache.instance) {
@@ -48,95 +51,38 @@ export class Cache<T> implements Serializable {
     return serializeMap(this.store as Map<string, T>)
   }
 
-  writeToStorage() {
+  async writeToStorage() {
+    try {
+      await fs.mkdir(Config.outputDirectory, { recursive: true });
+      const cachedContent = this.serialize();
+      await fs.writeFile(path.resolve(Config.outputDirectory, this.cacheFile), cachedContent);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
 
+      console.error("Unable to write cache to disk:", error)
+    }
   }
 
-  restoreFromStorage() { }
+  async restoreFromStorage() {
+    try {
+      // If cache file does not exist return early to prevent error on read
+      if (!existsSync(
+        path.resolve(Config.outputDirectory, this.cacheFile)
+      )) return;
+
+      const serializedContent = await fs.readFile(
+        path.resolve(Config.outputDirectory, this.cacheFile)
+      );
+      this.store = deserializeMap<T>(serializedContent.toString());
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      console.error("Unable to read cache from disk:", error)
+    }
+  }
 }
 
-//type Segments = Map<string, CacheSegment<any>>
-//
-//export class Cache implements Serializable {
-//  private static instance: Cache;
-//  public segments: Segments = new Map();
-//
-//  constructor(private fileName: string, private location: string) {
-//    if (!Cache.instance) {
-//      this.initializeSegments();
-//      Cache.instance = this;
-//    }
-//
-//    return Cache.instance;
-//  }
-//
-//  static getInstance() {
-//    return Cache.instance;
-//  }
-//
-//  private initializeSegments() {
-//    this.segments.set(
-//      "dependencies", new DependencyMap()
-//    )
-//  }
-//
-//  // This is a mess
-//  static deserialize(serializedCache: string): Cache {
-//    printWarning("Not implemented")
-//    if (!Cache.instance) {
-//      throw new Error("Cache must be instantiated before calling deserialize")
-//    }
-//    //const cacheSegments: Segments = new Map();
-//    //const parsed = JSON.parse(serializedCache);
-//    //for (const [k, v] of Object.entries(parsed)) {
-//    //  cacheSegments.set(k as string, v);
-//    //}
-//    //Cache.instance.segments = cacheSegments;
-//    return Cache.instance
-//  }
-//
-//  public serialize(): string {
-//    const serialized: { [key: string]: string } = {};
-//    for (const segment of this.segments.keys()) {
-//      serialized[segment] = this.serializeSegment(segment);
-//    }
-//    return JSON.stringify(serialized);
-//  }
-//
-//  public serializeSegment(target: string): string {
-//    if (!this.segments.has(target)) {
-//      throw new Error(`Cache segment ${target} does not exist`)
-//    }
-//
-//    return this.segments.get(target).serialize();
-//  }
-//
-//  public async write() {
-//    try {
-//      await fs.mkdir(this.location, { recursive: true });
-//      const cachedContent = this.serialize();
-//      await fs.writeFile(path.resolve(this.location, this.fileName), cachedContent);
-//    } catch (error) {
-//      if (error instanceof Error) {
-//        throw error;
-//      }
-//
-//      console.error("Unable to write cache to disk:", error)
-//    }
-//  }
-//
-//  public async read() {
-//    try {
-//      const serializedContent = await fs.readFile(
-//        path.resolve(this.location, this.fileName)
-//      );
-//      Cache.deserialize(serializedContent.toString());
-//    } catch (error) {
-//      if (error instanceof Error) {
-//        throw error;
-//      }
-//
-//      console.error("Unable to read cache from disk:", error)
-//    }
-//  }
-//}

@@ -74,6 +74,8 @@ Currently this is just a file crawler and component dependency checker. It will 
 pnpm rsckit:analyze --projectDir "/path/to/your-project" 
 ```
 
+The dependency graph for your project will be stored on disk in the `.rsckit` directory. Cached results will be read here before each command, but you can prevent this with the `--skipCache` flag.
+
 Use the `--help` flag for more details.
 
 In the future, this will index and analyze the structure of your Next.js project - for example, finding and instrumenting client components via a codemod. For now, you can find client components manually:
@@ -106,8 +108,6 @@ In some cases yes. This is a deterministic solution that lets you see exactly ho
 
 This is an intentionally unordered list:
 
-- Tests 👼
-- Module caching
 - Third party component analysis
 - Custom prop checking functions
 - Client-side rendering analysis
