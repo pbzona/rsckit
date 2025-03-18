@@ -3,10 +3,13 @@ import * as path from "node:path"
 import { Parser } from "@/parser/parser";
 import { createDependency, Dependency } from "./dependencies";
 import { DependencyGraph } from "@/parser/dependency-graph";
+import { printMessage } from "@/lib/output";
+import { hashString } from "@/lib/hash";
 
 export class SourceFile {
   public fileName: string;
   public dependencies: Dependency[] = [];
+  private hash: string; // Eventually use this for caching
   private parser: Parser | null = null;
   private depGraph: DependencyGraph;
 
@@ -17,11 +20,14 @@ export class SourceFile {
 
   async read(): Promise<string> {
     const fileContent = await fs.readFile(this.filePath, "utf8");
-    return fileContent.toString();
+    const str = fileContent.toString();
+    this.hash = hashString(str);
+    return str;
   }
 
   async parse(): Promise<SourceFile> {
     this.parser = new Parser(this);
+    printMessage(`Parsing file: ${this.filePath.split("/").slice(-2).join("/")}`);
     await this.parser.parse();
     return this;
   }

@@ -51,7 +51,6 @@ const analyzeCommandHandler = async (options: Options) => {
       await p.buildGraph();
     }
 
-    //console.log(JSON.parse(cache.serialize()))
     await cache.writeToStorage();
   } catch (error) {
     throw error;
