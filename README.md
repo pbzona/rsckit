@@ -1,5 +1,7 @@
 # rsckit
 
+> We should do ... our utmost to shorten the conceptual gap between the static program and the dynamic process, to make the correspondence between the program (spread out in text space) and the process (spread out in time) as trivial as possible. - Dijkstra
+
 This is an 🧪experimental🧪 set of tools to help understand and diagnose React server components in your Next.js application. It has been tested with Next.js 15 and should *only be used for local development*.
 
 ## Installation
