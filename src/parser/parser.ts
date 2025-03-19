@@ -1,9 +1,11 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 import cabinet from "filing-cabinet";
 import detective from "detective-typescript";
 import swc, { Module } from "@swc/core";
-import { SourceFile } from "@/file-objects/file";
+import { SourceFile } from "@/file-objects/source-file";
 import { Project } from "@/project/project";
+import { printWarning } from "@/lib/output";
 
 export class Parser {
   public ast: Module | null;
@@ -29,6 +31,17 @@ export class Parser {
     }
 
     try {
+      // Skip if the file doesn't exist, this can happen when referencing
+      // modules in dist/, and the actual way to handle this is too complicated
+      // to be worth the effort at the moment. For now warn the user they might need
+      // to run a local build and skip it. Unlikely to find 
+      // useful results in these files anyway
+      if (!fs.existsSync(this.file.filePath)) {
+        printWarning(`File not found: ${this.file.filePath}`)
+        printWarning('This might mean you need to build your project')
+        printWarning('Skipping...')
+        return this;
+      }
       const src = await this.file.read()
       const parsed = await swc.parse(src, {
         syntax: "typescript",
@@ -65,10 +78,19 @@ export class Parser {
           entry: "any"
         }
       })
-    ))
+    )).filter((d: string) => !!d); // prevent weird edge case where some deps are empty strings. Will deal with it properly in the future maybe
   }
 
   public async getExports(): Promise<any> {
+    if (!this.ast) {
+      await this.parse()
+    }
 
+  }
+
+  public async hasUseClientDirective(): Promise<boolean> {
+    if (!this.ast) {
+      await this.parse()
+    }
   }
 }

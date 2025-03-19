@@ -1,5 +1,6 @@
 import * as fs from "node:fs/promises";
-import * as path from "node:path"
+import * as path from "node:path";
+import chalk from "chalk";
 import { Parser } from "@/parser/parser";
 import { createDependency, Dependency } from "./dependencies";
 import { DependencyGraph } from "@/parser/dependency-graph";
@@ -14,7 +15,7 @@ export class SourceFile {
   private depGraph: DependencyGraph;
 
   constructor(public filePath: string) {
-    this.fileName = path.basename(filePath).replace(path.extname(filePath), "")
+    this.fileName = path.basename(filePath).replace(path.extname(filePath), "");
     this.depGraph = new DependencyGraph(this.filePath);
   }
 
@@ -27,7 +28,7 @@ export class SourceFile {
 
   async parse(): Promise<SourceFile> {
     this.parser = new Parser(this);
-    printMessage(`Parsing file: ${this.filePath.split("/").slice(-2).join("/")}`);
+    printMessage(`${chalk.green("Parsing file")}: ${this.filePath.split("/").slice(-2).join("/")}`);
     await this.parser.parse();
     return this;
   }
@@ -39,8 +40,15 @@ export class SourceFile {
     const importedModules = await this.parser.getImports();
     this.dependencies = importedModules
       .map(dep => createDependency(dep))
-      .filter(dep => !!dep)
+      .filter(dep => !!dep);
     return this.dependencies;
+  }
+
+  async checkForUseClient(): Promise<boolean> {
+    if (!this.parser) {
+      await this.parse();
+    }
+    return true;
   }
 
   async buildGraph() {
