@@ -27,8 +27,16 @@ export class SourceFile {
   }
 
   async parse(): Promise<SourceFile> {
+    const displayName = this.filePath.split("/").slice(-2).join("/");
+
+    if (this.fileName.startsWith("page")) {
+      printMessage(`${chalk.magenta("Parsing page")}: ${displayName}`);
+    } else {
+      printMessage(`${chalk.green("Parsing dependency")}: ${displayName}`);
+    }
+
+
     this.parser = new Parser(this);
-    printMessage(`${chalk.green("Parsing file")}: ${this.filePath.split("/").slice(-2).join("/")}`);
     await this.parser.parse();
     return this;
   }

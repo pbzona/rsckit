@@ -3,12 +3,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { deserializeMap, Serializable, serializeMap } from "@/lib/serialize";
 import { Config } from "@/config";
+import { printMessage } from "@/lib/output";
 
-interface Store<T> {
-  get: (k: string) => T;
-  set: (k: string, v: T) => Map<string, T>;
-  has: (k: string) => boolean;
-}
+// Don't be fancy
+type Store<T> = Map<string, T>;
 
 // Todo: support multiple stores
 // right now just proving out concept w dependencies
@@ -47,8 +45,7 @@ export class Cache<T> implements Serializable {
   }
 
   serialize(): string {
-    // weird, will fix when I figure out how Store works 
-    return serializeMap(this.store as Map<string, T>)
+    return serializeMap(this.store)
   }
 
   async writeToStorage() {
@@ -56,6 +53,9 @@ export class Cache<T> implements Serializable {
       await fs.mkdir(Config.outputDirectory, { recursive: true });
       const cachedContent = this.serialize();
       await fs.writeFile(path.resolve(Config.outputDirectory, this.cacheFile), cachedContent);
+
+      // Separate this out into some kind of structured report 
+      printMessage(`Wrote dependency data for ${this.store.size} source files`)
     } catch (error) {
       if (error instanceof Error) {
         throw error;

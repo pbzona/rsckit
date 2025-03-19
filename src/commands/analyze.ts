@@ -6,7 +6,6 @@ import { Dependency } from "@/file-objects/dependencies";
 import { SourceFile } from "@/file-objects/source-file";
 import { Parser } from "@/parser/parser";
 import { Config } from "@/config";
-import { printMessage } from "@/lib/output";
 
 interface Options {
   projectDir?: string;
@@ -50,7 +49,6 @@ const analyzeCommandHandler = async (options: Options) => {
       const deps = await p.getDependencies();
       cache.set(p.filePath, deps);
       await p.buildGraph();
-      await cache.writeToStorage();
     }
 
     await cache.writeToStorage();
