@@ -10,6 +10,7 @@ import { hashString } from "@/lib/hash";
 export class SourceFile {
   public fileName: string;
   public dependencies: Dependency[] = [];
+  public hasUseClient: boolean = false;
   private hash: string; // Eventually use this for caching
   private parser: Parser | null = null;
   private depGraph: DependencyGraph;
@@ -35,7 +36,6 @@ export class SourceFile {
       printMessage(`${chalk.green("Parsing dependency")}: ${displayName}`);
     }
 
-
     this.parser = new Parser(this);
     await this.parser.parse();
     return this;
@@ -56,7 +56,8 @@ export class SourceFile {
     if (!this.parser) {
       await this.parse();
     }
-    return true;
+    this.hasUseClient = await this.parser.hasUseClientDirective();
+    return this.hasUseClient;
   }
 
   async buildGraph() {

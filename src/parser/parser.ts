@@ -2,13 +2,16 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import cabinet from "filing-cabinet";
 import detective from "detective-typescript";
+import j, { Collection } from "jscodeshift";
 import swc, { Module } from "@swc/core";
 import { SourceFile } from "@/file-objects/source-file";
 import { Project } from "@/project/project";
-import { printWarning } from "@/lib/output";
+import { printMessage, printWarning } from "@/lib/output";
+import { chooseParser } from "@/lib/parser-utils";
 
 export class Parser {
   public ast: Module | null;
+  public collection: Collection<any>;
   public static projectRoot: string;
   public static tsConfigPath: string;
 
@@ -22,6 +25,15 @@ export class Parser {
     const { root } = project;
     Parser.projectRoot = path.resolve(root);
     Parser.tsConfigPath = path.resolve(path.join(root, "tsconfig.json"));
+  }
+
+  // Need to have a separate process to create a Collection for 
+  // jscodeshift to operate on. Integrating swc output here has
+  // turned out to be tricky but is probably the best option long term
+  private slowParse(src: string, fileName: string) {
+    return j(src, {
+      parser: chooseParser(fileName)
+    })
   }
 
   public async parse(): Promise<Parser> {
@@ -48,7 +60,10 @@ export class Parser {
         tsx: true,
         target: "es2024"
       });
-      this.ast = parsed
+      this.ast = parsed;
+
+      // This probably hurts performance but will codemods easier
+      this.collection = this.slowParse(src, this.file.fileName);
 
       return this;
     } catch (error) {
@@ -89,8 +104,14 @@ export class Parser {
   }
 
   public async hasUseClientDirective(): Promise<boolean> {
-    if (!this.ast) {
+    if (!this.collection) {
       await this.parse()
     }
+
+    return Boolean(
+      this.collection
+        .find(j.DirectiveLiteral)
+        .filter((path) => path.node.value === "use client").length
+    )
   }
 }

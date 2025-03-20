@@ -29,12 +29,16 @@ const analyzeCommandHandler = async (options: Options) => {
     path.resolve(here, options.projectDir) : Config.projectDirectory;
   const _skipCache = !!options.skipCache
 
+  const cache = new Cache();
+
   // Need to temporarily change dir for globbing to work 
   // for some reason (??), will fix this eventually
   process.chdir(_projectDir);
 
   try {
-    const cache = new Cache<Dependency[]>();
+    const dependencyCache = Cache.useData("dependencies");
+    const clientDirectiveCache = Cache.useData("clientDirective");
+
     if (!_skipCache) {
       await cache.restoreFromStorage()
     }
@@ -46,8 +50,13 @@ const analyzeCommandHandler = async (options: Options) => {
 
     for (const page of pages) {
       const p = new SourceFile(page);
+
       const deps = await p.getDependencies();
-      cache.set(p.filePath, deps);
+      dependencyCache.set(p.filePath, deps);
+
+      const hasUseClient = await p.checkForUseClient();
+      clientDirectiveCache.set(p.filePath, hasUseClient);
+
       await p.buildGraph();
     }
 

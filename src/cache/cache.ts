@@ -3,18 +3,23 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { deserializeMap, Serializable, serializeMap } from "@/lib/serialize";
 import { Config } from "@/config";
-import { printMessage } from "@/lib/output";
+import { Dependency } from "@/file-objects/dependencies";
 
-// Don't be fancy
 type Store<T> = Map<string, T>;
+
+type CacheData = {
+  dependencies: Store<Dependency[]>;
+  clientDirective: Store<boolean>;
+}
 
 // Todo: support multiple stores
 // right now just proving out concept w dependencies
-export class Cache<T> implements Serializable {
-  public static instance: Cache<any>;
-  // weird typing on store because of how I wrote serialize functions
-  // iniitially, need to fix this
-  private store: Store<T> = new Map<string, T>();
+export class Cache implements Serializable {
+  static instance: Cache;
+  private data: CacheData = {
+    dependencies: new Map<string, Dependency[]>(),
+    clientDirective: new Map<string, boolean>()
+  };
   private cacheFile: string = "cache.json";
 
   constructor() {
@@ -32,20 +37,32 @@ export class Cache<T> implements Serializable {
     return Cache.instance
   }
 
-  get(key: string): T {
-    return this.store.get(key)
+  static useData(store: keyof CacheData) {
+    return {
+      get: (key: string) => this.instance.get(key, store),
+      set: (key: string, value) => this.instance.set(key, value, store),
+      has: (key: string) => this.instance.has(key, store),
+      store: this.instance.data[store]
+    }
   }
 
-  set(key: string, value: T) {
-    return this.store.set(key, value);
+  get(key: string, store: keyof CacheData) {
+    return this.data[store].get(key)
   }
 
-  has(key: string) {
-    return this.store.has(key);
+  set(key: string, value, store: keyof CacheData) {
+    return this.data[store].set(key, value);
+  }
+
+  has(key: string, store: keyof CacheData) {
+    return this.data[store].has(key);
   }
 
   serialize(): string {
-    return serializeMap(this.store)
+    return JSON.stringify({
+      dependencies: serializeMap(this.data.dependencies),
+      clientDirective: serializeMap(this.data.clientDirective)
+    });
   }
 
   async writeToStorage() {
@@ -53,9 +70,6 @@ export class Cache<T> implements Serializable {
       await fs.mkdir(Config.outputDirectory, { recursive: true });
       const cachedContent = this.serialize();
       await fs.writeFile(path.resolve(Config.outputDirectory, this.cacheFile), cachedContent);
-
-      // Separate this out into some kind of structured report 
-      printMessage(`Wrote dependency data for ${this.store.size} source files`)
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -75,7 +89,13 @@ export class Cache<T> implements Serializable {
       const serializedContent = await fs.readFile(
         path.resolve(Config.outputDirectory, this.cacheFile)
       );
-      this.store = deserializeMap<T>(serializedContent.toString());
+      const { dependencies, clientDirective } = JSON.parse(serializedContent.toString())
+      this.data.dependencies = deserializeMap<Dependency[]>(
+        dependencies.toString()
+      );
+      this.data.clientDirective = deserializeMap<boolean>(
+        clientDirective.toString()
+      );
     } catch (error) {
       if (error instanceof Error) {
         throw error;
