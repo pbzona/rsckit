@@ -7,13 +7,11 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Explore",
+      "name": "Analyze",
       "program": "${workspaceFolder}/dist/cli.js",
-      "stopOnEntry": false,
+      "stopOnEntry": true,
       "args": [
-        "explore",
-        "--projectDir",
-        "/Users/phil/Vercel/Experiments/test-project"
+        "analyze"
       ],
       "skipFiles": [
         "<node_internals>/**",

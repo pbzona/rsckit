@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+
 import { Command } from "commander";
-import { exploreCmd } from './commands/explore';
+import { registerAnalyzeCommand } from "./commands/analyze";
 
 async function main() {
   const program = new Command();
@@ -9,11 +10,7 @@ async function main() {
     .name('rsckit')
     .description('CLI for analyzing your Next.js project');
 
-  program.command('explore')
-    .description('Crawl your project and generate reports on its component structure')
-    .option('-p, --projectDir <string>', 'the root of your Next.js project')
-    .option('-o, --outputDir <string>', 'the output directory for reports (default current dir)')
-    .action((options) => exploreCmd(options));
+  registerAnalyzeCommand(program);
 
   await program.parseAsync(process.argv);
 };

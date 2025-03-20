@@ -15,10 +15,15 @@ logs/
 *.log
 pnpm-debug.log*
 
+# Test
+coverage/
+
 # Local dev stuff
 tmp/
 rsckit/*.json
+.rsckit
 
 # Annoying
 .DS_Store
+
 
