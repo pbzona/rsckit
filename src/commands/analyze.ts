@@ -36,27 +36,30 @@ const analyzeCommandHandler = async (options: Options) => {
   process.chdir(_projectDir);
 
   try {
-    const dependencyCache = Cache.useData("dependencies");
-    const clientDirectiveCache = Cache.useData("clientDirective");
-
     if (!_skipCache) {
       await cache.restoreFromStorage()
     }
 
+    // Initialize the project and parser
     const project = await Project.init(_projectDir);
     Parser.init(project);
 
+    // Get all 'page.tsx' files for the project
+    // These will be the roots for finding problematic uses of 
+    // the use client directive and large props
     const pages = await project.findPages();
 
+    // Create a file object for each page to handle different 
+    // parsing operations and checks
     for (const page of pages) {
       const p = new SourceFile(page);
 
+      // Get dependencies for the file
       const deps = await p.getDependencies();
-      dependencyCache.set(p.filePath, deps);
+      cache.set(p.filePath, deps);
 
-      const hasUseClient = await p.checkForUseClient();
-      clientDirectiveCache.set(p.filePath, hasUseClient);
-
+      // Traverse the full dependency graph, which triggers each
+      // dependency to be parsed and added to the cache
       await p.buildGraph();
     }
 

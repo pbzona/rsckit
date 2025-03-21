@@ -5,21 +5,11 @@ import { deserializeMap, Serializable, serializeMap } from "@/lib/serialize";
 import { Config } from "@/config";
 import { Dependency } from "@/file-objects/dependencies";
 
-type Store<T> = Map<string, T>;
-
-type CacheData = {
-  dependencies: Store<Dependency[]>;
-  clientDirective: Store<boolean>;
-}
-
 // Todo: support multiple stores
 // right now just proving out concept w dependencies
 export class Cache implements Serializable {
   static instance: Cache;
-  private data: CacheData = {
-    dependencies: new Map<string, Dependency[]>(),
-    clientDirective: new Map<string, boolean>()
-  };
+  private data: Map<string, Dependency[]> = new Map();
   private cacheFile: string = "cache.json";
 
   constructor() {
@@ -37,32 +27,20 @@ export class Cache implements Serializable {
     return Cache.instance
   }
 
-  static useData(store: keyof CacheData) {
-    return {
-      get: (key: string) => this.instance.get(key, store),
-      set: (key: string, value) => this.instance.set(key, value, store),
-      has: (key: string) => this.instance.has(key, store),
-      store: this.instance.data[store]
-    }
+  get(key: string) {
+    return this.data.get(key)
   }
 
-  get(key: string, store: keyof CacheData) {
-    return this.data[store].get(key)
+  set(key: string, value: Dependency[]) {
+    return this.data.set(key, value);
   }
 
-  set(key: string, value, store: keyof CacheData) {
-    return this.data[store].set(key, value);
-  }
-
-  has(key: string, store: keyof CacheData) {
-    return this.data[store].has(key);
+  has(key: string) {
+    return this.data.has(key);
   }
 
   serialize(): string {
-    return JSON.stringify({
-      dependencies: serializeMap(this.data.dependencies),
-      clientDirective: serializeMap(this.data.clientDirective)
-    });
+    return serializeMap(this.data);
   }
 
   async writeToStorage() {
@@ -90,11 +68,8 @@ export class Cache implements Serializable {
         path.resolve(Config.outputDirectory, this.cacheFile)
       );
       const { dependencies, clientDirective } = JSON.parse(serializedContent.toString())
-      this.data.dependencies = deserializeMap<Dependency[]>(
+      this.data = deserializeMap<Dependency[]>(
         dependencies.toString()
-      );
-      this.data.clientDirective = deserializeMap<boolean>(
-        clientDirective.toString()
       );
     } catch (error) {
       if (error instanceof Error) {
