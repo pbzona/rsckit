@@ -1,6 +1,7 @@
 import * as path from "node:path"
 import { findParentPackage } from "@/lib/package";
 import { Serializable } from "@/lib/serialize";
+import { isDeclarationFile } from "@/lib/parser-utils";
 
 export type DependencyObj = {
   name: string;
@@ -9,15 +10,9 @@ export type DependencyObj = {
 }
 
 export const createDependency = (filePath: string) => {
-  const declarationPattern = new RegExp(/.*\.d\.m?ts$/);
-  const fileName = path.basename(filePath);
-
-  // If the file is a declaration file skip it, not counting these 
-  // as "real" dependencies
-  if (fileName.match(declarationPattern)) {
+  if (isDeclarationFile(filePath)) {
     return;
   }
-
   return new Dependency(filePath).init();
 }
 

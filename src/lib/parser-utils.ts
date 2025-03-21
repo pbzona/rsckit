@@ -3,8 +3,8 @@ import babylonParse from 'jscodeshift/parser/babylon.js';
 import tsParse from 'jscodeshift/parser/ts.js';
 import tsxParse from 'jscodeshift/parser/tsx.js';
 
-const isDeclarationFile = (filePath: string) => (
-  path.parse(filePath).name.endsWith('.d') && path.parse(filePath).ext === '.ts'
+export const isDeclarationFile = (filePath: string) => (
+  path.parse(filePath).name.endsWith('.d') && path.parse(filePath).ext.endsWith('ts')
 );
 const isTsFile = (filePath: string) => path.parse(filePath).ext === '.ts';
 const isTsxFile = (filePath: string) => path.parse(filePath).ext === '.tsx';
