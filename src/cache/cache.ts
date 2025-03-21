@@ -67,9 +67,9 @@ export class Cache implements Serializable {
       const serializedContent = await fs.readFile(
         path.resolve(Config.outputDirectory, this.cacheFile)
       );
-      const { dependencies, clientDirective } = JSON.parse(serializedContent.toString())
+      const restore = serializedContent.toString()
       this.data = deserializeMap<Dependency[]>(
-        dependencies.toString()
+        restore.toString()
       );
     } catch (error) {
       if (error instanceof Error) {
