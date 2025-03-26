@@ -1,35 +1,49 @@
-import { createFinderFn, FinderFunction } from "./find";
+import path from "node:path";
+import { createSourceFile, SourceFile } from "@/source-file/source-file";
+import { createParserFactory } from "@/parser/parser";
+import { createFinderFn, inferRoutesFromPagePaths } from "./utils";
+import { printHeadingAlt } from "@/lib/output";
 
-export class Project {
-  private findFilesByName: (fileName: string) => FinderFunction;
-  public findPages: FinderFunction;
+export interface Project {
+  root: string;
+  tsConfigPath: string;
+  pages: SourceFile[];
+  routes: string[];
+}
 
-  private constructor(public root: string) {
-    this.findFilesByName = (fileName: string) => createFinderFn(
-      root, fileName
-    )
-    this.findPages = this.findFilesByName("page");
+export async function createProject(root: string, tsConfigPath?: string) {
+  // Set  up finder functions - might use this for layouts, etc later
+  const findFilesByName = (fileName: string) => createFinderFn(
+    root, fileName
+  );
+  const findPages = findFilesByName("page");
 
-    return this;
-  }
+  // Resolve to absolute paths if needed
+  const _root = path.resolve(root);
+  const _tsConfigPath = tsConfigPath ?
+    path.resolve(tsConfigPath) :
+    path.resolve(path.join(root, "tsconfig.json"));
 
-  // Use static init method to avoid problems with async constructor 
-  static async init(root: string): Promise<Project> {
-    return new Project(root);
-  }
+  // Using a factory here so I can close over the project settings
+  // and pass them to the parser without each file needing to 
+  // keep a reference
+  const parserFactory = createParserFactory({
+    projectRoot: _root,
+    tsConfigPath: _tsConfigPath
+  })
 
-  async getRoutesForPages(pages?: string[]) {
-    const _pages = pages ? pages : await this.findPages();
+  printHeadingAlt("Finding app router pages...");
+  const pagePaths = await findPages();
+  const _pages = await Promise.all(
+    pagePaths.map(p => createSourceFile(p, parserFactory))
+  )
+  printHeadingAlt("Inferring routes...")
+  const _routes = inferRoutesFromPagePaths(pagePaths);
 
-    return _pages.map((page: string) => {
-      if (!page.includes("app")) {
-        return null;
-      }
-      // Split at 'app' because that's the root of the app router
-      // Take the second part (index 1) and if you remove the file name
-      // that's the route. I know this is ugly :(
-      const route = page.split("app")[1].replace(/\/page.*$/, "");
-      return route === "" ? "/" : route;
-    }).filter((page: string | null) => page !== null);
-  }
+  return {
+    root: _root,
+    tsConfigPath: _tsConfigPath,
+    pages: _pages,
+    routes: _routes
+  };
 }

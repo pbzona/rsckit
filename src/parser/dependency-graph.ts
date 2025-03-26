@@ -1,14 +1,11 @@
-import { Cache } from "@/cache/cache"
-import { Dependency } from "@/file-objects/dependencies";
-import { SourceFile } from "@/file-objects/source-file";
 
 export class DependencyGraph {
   public usesClientSideRendering: boolean = false;
 
-  constructor(public root: string) { }
+  constructor(public root: FilePath) { }
 
-  async traverse(dependencies: Dependency[]) {
-    if (dependencies.length === 0) {
+  async traverse(dependencies: Set<SourceFile>) {
+    if (dependencies.size === 0) {
       return;
     }
 
@@ -22,7 +19,7 @@ export class DependencyGraph {
       if (!cached) {
         const f = new SourceFile(dep.filePath);
         const fdeps = await f.getDependencies();
-        cache.set(f.filePath, fdeps)
+        cache.set(f.filePath, { src: f })
 
         // Sets to true if false but doesn't set false to true 
         this.usesClientSideRendering = this.usesClientSideRendering || await f.checkForUseClient();
@@ -31,22 +28,22 @@ export class DependencyGraph {
       }
 
       // Continue depth first traversal
-      return await this.traverse(cached as Dependency[]);
+      return await this.traverse(cached as Set<SourceFile>);
     }
   }
 
   async build() {
     const cache = Cache.use();
-    const rootImports = cache.get(this.root);
+    const entry = cache.get(this.root);
+    const { src } = entry;
 
-    if (!rootImports) {
+    if (!src.dependencies) {
       const f = new SourceFile(this.root);
-      const deps = await f.getDependencies();
-      cache.set(f.filePath, deps);
+      await f.getDependencies();
       return await this.build()
     }
 
-    await this.traverse(rootImports as Dependency[])
+    await this.traverse(src.dependencies)
   }
 }
 

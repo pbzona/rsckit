@@ -23,6 +23,9 @@ tmp/
 rsckit/*.json
 .rsckit
 
+# Sonda (build viz)
+sonda-report.html
+
 # Annoying
 .DS_Store
 

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { printError } from './output';
+import { FilePath } from '@/source-file/source-file';
 
 async function dirExists(dirPath: string): Promise<boolean> {
   try {
@@ -24,3 +25,10 @@ export const getAppDirFromRoot = async (root: string) => {
   }
 }
 
+export const displayName = (filePath: FilePath) => {
+  return filePath.split("/").slice(-2).join("")
+}
+
+export const fileNameFromPath = (filePath: FilePath) => {
+  return path.basename(filePath).replace(path.extname(filePath), "");
+}
