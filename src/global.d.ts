@@ -1,1 +1,1 @@
-declare module '@root/walk';
+declare module "@root/walk";

@@ -1,1 +1,1 @@
-export * from '@/lib/prop-checks';
+export * from "@/lib/prop-checks";

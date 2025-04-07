@@ -1,1 +1,1 @@
-export * from './with-prop-inspector';
+export * from "./with-prop-inspector";

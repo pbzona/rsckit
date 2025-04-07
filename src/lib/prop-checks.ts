@@ -1,4 +1,4 @@
-import { estimateBytes, formatBytes, parseBytes } from './bytes';
+import { estimateBytes, formatBytes, parseBytes } from "./bytes";
 
 export type BasicProp = {
   name: string;
@@ -10,7 +10,7 @@ export type BasicProp = {
 export type PropCheckFunction = (
   prop: BasicProp,
   componentName: string,
-  comparisonValue?: unknown
+  comparisonValue?: unknown,
 ) => boolean | Promise<boolean>;
 
 // Return the result and message to return for further processing
@@ -24,14 +24,19 @@ export type PropCheckResult = {
 export function isPropLarge(
   prop: BasicProp,
   componentName: string,
-  comparisonValue: string | number = "100B"
+  comparisonValue: string | number = "100B",
 ) {
   const sizeInBytes = estimateBytes(prop.value);
-  const maxSize = typeof comparisonValue === "string" ? parseBytes(comparisonValue) : comparisonValue;
+  const maxSize =
+    typeof comparisonValue === "string"
+      ? parseBytes(comparisonValue)
+      : comparisonValue;
   const result = sizeInBytes > maxSize;
 
   return {
     result,
-    message: result ? `${componentName}#${prop.name}: ${formatBytes(sizeInBytes)}` : null
+    message: result
+      ? `${componentName}#${prop.name}: ${formatBytes(sizeInBytes)}`
+      : null,
   };
-};
+}

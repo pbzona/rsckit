@@ -53,7 +53,7 @@ export const parseBytes = (input: string): number => {
 
   const value = Number.parseFloat(match[1]);
   const unit = match[2];
-  const multipliers: { [key: string]: number; } = {
+  const multipliers: { [key: string]: number } = {
     B: 1,
     KB: 1024,
     MB: 1024 * 1024,
