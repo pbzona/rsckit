@@ -1,8 +1,9 @@
 import * as path from "node:path"
 import { Command } from "commander";
+import chalk from "chalk";
 import { createProject } from "@/project/project";
 import { Config } from "@/config";
-import { printHeading } from "@/lib/output";
+import { printHeading, printMessage } from "@/lib/output";
 import { sourceFileCache } from "@/cache";
 
 interface Options {
@@ -40,36 +41,15 @@ export const analyze = async (options: Options) => {
     printHeading(
       `Analyzing ${_projectDir.split("/").slice(-1)[0]}`
     )
-
     const project = await createProject(_projectDir);
+
+    // Do stuff with the pages found in the project
     for (const page of project.pages) {
-      await page.analyze();
+      // Todo build a dep graph here so I can easily find RSC boundaries
+      console.log(page)
     }
 
     await sourceFileCache.writeToFile()
-
-    //// Get all 'page.tsx' files for the project
-    //// These will be the roots for finding problematic uses of 
-    //// the use client directive and large props
-    //printMessage("Getting pages for the project...")
-    //const pages = await project.findPages();
-    //
-    //// Create a file object for each page to handle different 
-    //// parsing operations and checks
-    //for (const page of pages) {
-    //  const p = new SourceFile(page);
-    //  printMessage(`${chalk.magenta("Found page:")} ${p.filePath.split("/").slice(-2).join("")}`)
-    //
-    //  // Do things with the parser 
-    //  await p.getDependencies();
-    //  await p.checkForUseClient();
-    //
-    //  // Traverse the full dependency graph, which triggers each
-    //  // dependency to be parsed and added to the cache
-    //  await p.buildGraph();
-    //}
-    //
-    //await cache.writeToStorage();
   } catch (error) {
     throw error;
   } finally {

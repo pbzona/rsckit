@@ -2,7 +2,7 @@ import path from "node:path";
 import { createSourceFile, SourceFile } from "@/source-file/source-file";
 import { createParserFactory } from "@/parser/parser";
 import { createFinderFn, inferRoutesFromPagePaths } from "./utils";
-import { printHeadingAlt } from "@/lib/output";
+import { printHeadingAlt, printMessage } from "@/lib/output";
 
 export interface Project {
   root: string;
@@ -33,10 +33,14 @@ export async function createProject(root: string, tsConfigPath?: string) {
   })
 
   printHeadingAlt("Finding app router pages...");
+  const _pages = [];
   const pagePaths = await findPages();
-  const _pages = await Promise.all(
-    pagePaths.map(p => createSourceFile(p, parserFactory))
-  )
+
+  printMessage("Found pages:");
+  for (const page of pagePaths) {
+    _pages.push(await createSourceFile(page, parserFactory));
+  }
+
   printHeadingAlt("Inferring routes...")
   const _routes = inferRoutesFromPagePaths(pagePaths);
 

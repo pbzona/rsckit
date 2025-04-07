@@ -62,6 +62,10 @@ export function createParserFactory(options: ParserOptions): ParserFactory {
           return this;
         }
         const src = await this.sourceFile.read()
+        // Todo - roll this into a custom parser for jsc?
+        // woudl need to transform it to be babel-compatible though,
+        // which is sync and might end up adding complexity for no real
+        // gain in speed
         const parsed = await swc.parse(src, {
           syntax: "typescript",
           tsx: true,

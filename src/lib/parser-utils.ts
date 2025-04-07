@@ -1,15 +1,9 @@
-import * as path from "node:path";
 import babylonParse from 'jscodeshift/parser/babylon.js';
 import tsParse from 'jscodeshift/parser/ts.js';
 import tsxParse from 'jscodeshift/parser/tsx.js';
 
-export const isDeclarationFile = (filePath: string) => (
-  path.parse(filePath).name.endsWith('.d') && path.parse(filePath).ext.endsWith('ts')
-);
-const isTsFile = (filePath: string) => path.parse(filePath).ext === '.ts';
-const isTsxFile = (filePath: string) => path.parse(filePath).ext === '.tsx';
-const isJsFile = (filePath: string) => path.parse(filePath).ext === '.js';
-const isJsxFile = (filePath: string) => path.parse(filePath).ext === '.jsx';
+const isDeclarationFile = (filePath: string) => /\.d\.(m|c)?ts$/.test(filePath)
+const isTsFile = (filePath: string) => /\.(m|c)?.ts$/.test(filePath)
 
 export function chooseParser(filePath: string) {
   if (isDeclarationFile(filePath)) {
@@ -23,8 +17,9 @@ export function chooseParser(filePath: string) {
   return isTsFile(filePath) ? tsParse() : tsxParse();
 }
 
-export function mightContainReactComponent(filePath: string) {
-  return isTsxFile(filePath) ||
-    isJsxFile(filePath) ||
-    isJsFile(filePath);
+export function canBeParsed(filePath: string) {
+  return (
+    !isDeclarationFile(filePath) &&
+    /\.(m|c)?(t|j)sx?$/.test(filePath)
+  )
 }

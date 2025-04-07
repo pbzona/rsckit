@@ -66,6 +66,9 @@ export function createCache<T extends Serializable>(filename?: string) {
           path.resolve(Config.outputDirectory, this.cacheFile)
         )) return;
 
+        // Clear the cache before restoring
+        this.data.clear();
+
         const serializedContent = await fs.readFile(
           path.resolve(Config.outputDirectory, this.cacheFile)
         );

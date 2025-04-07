@@ -2,6 +2,7 @@ import cabinet from "filing-cabinet";
 import detective from "detective-typescript";
 import { Parser } from "./parser"
 import j from "jscodeshift";
+import { filterEmptyPaths, filterNonEcmaPaths } from "./filters.ts";
 
 type ParserOperation<R> = (parser: Parser) => R
 
@@ -13,12 +14,12 @@ const createParserOperation = <R>(
 }
 
 export const getImports = createParserOperation<Promise<string[]>>(async function (parser: Parser) {
-  const deps = detective(parser.ast, {
+  const imports = detective(parser.ast, {
     jsx: true,
     skipAsyncImports: true
   })
 
-  return deps.map((dep: string) => (
+  const deps = imports.map((dep: string) => (
     cabinet({
       partial: dep,
       filename: parser.sourceFile.filePath,
@@ -28,10 +29,14 @@ export const getImports = createParserOperation<Promise<string[]>>(async functio
         entry: "any"
       }
     })
-  )).filter((d: string) => !!d);
-  // ^ prevent weird edge case where some deps are empty strings. Will deal with it properly in the future maybe
+  ))
+
+  return filterEmptyPaths(
+    filterNonEcmaPaths(deps)
+  )
 });
 
+// todo: implement this
 export const getExports = createParserOperation<any>(
   async function (parser: Parser) {
     return parser;

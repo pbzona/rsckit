@@ -1,13 +1,14 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import chalk from "chalk";
 import { Parser, ParserFactory } from "@/parser/parser";
-import { DependencyGraph } from "@/parser/dependency-graph";
 import { findParentPackage } from "@/lib/package";
 import { hashString } from "@/lib/hash";
-import { fileNameFromPath } from "@/lib/utils";
+import { displayName, fileNameFromPath } from "@/lib/utils";
 import { Serializable } from "@/lib/serialize";
 import { sourceFileCache } from "@/cache";
 import { getImports, hasUseClientDirective } from "@/parser/operations";
+import { printMessage } from "@/lib/output";
 
 export interface SourceFile {
   filePath: string;
@@ -25,7 +26,8 @@ function inCache(filePath: string): boolean {
   return sourceFileCache.has(filePath);
 }
 
-export async function createSourceFile(file: string, parserFactory: ParserFactory): Promise<SourceFile> {
+export async function createSourceFile(file: string, parserFactory: ParserFactory) {
+
   // Check the cache first
   if (inCache(file)) {
     return sourceFileCache.get(file);
@@ -37,15 +39,17 @@ export async function createSourceFile(file: string, parserFactory: ParserFactor
     packageName?: string;
     hash: string; // Eventually use this for caching
     parser: Parser;
-    private depGraph: DependencyGraph;
 
     constructor(public filePath: string) {
-      this.depGraph = new DependencyGraph(this.filePath);
+      sourceFileCache.set(filePath, this);
 
       if (this.isNodeModule()) {
         this.getPackage();
       }
 
+      if (this.isPage) {
+        printMessage(`${chalk.green.bold("Creating page")} ${displayName(file)}`)
+      }
     }
 
     get fileName(): string {
@@ -73,13 +77,13 @@ export async function createSourceFile(file: string, parserFactory: ParserFactor
       return str;
     }
 
-    private isNodeModule(): boolean {
+    isNodeModule(): boolean {
       return this.filePath.split("/").includes("node_modules");
     }
 
     // This is synchronous!!!
     // Will change later when perf becomes a bigger concern
-    private getPackage(): string {
+    getPackage(): string {
       if (this.packageName) {
         return this.packageName;
       }
@@ -98,12 +102,17 @@ export async function createSourceFile(file: string, parserFactory: ParserFactor
     }
 
     async analyze(): Promise<void> {
-      if (!this.parser) {
-        await this.parse();
-      }
+      await this.parse();
 
-      // Get dependencies
+      // Get dependencies recursively
       this.dependencies = await getImports(this.parser);
+      // Note to future self - don't create these concurrently
+      for (const dep of this.dependencies) {
+        if (!inCache((dep))) {
+          printMessage(`Creating source file object for ${displayName(dep)}`)
+          await createSourceFile(dep, parserFactory)
+        }
+      }
 
       // Check to see if the file contains a use client directive
       this.useClient = await hasUseClientDirective(this.parser);
@@ -118,14 +127,13 @@ export async function createSourceFile(file: string, parserFactory: ParserFactor
         filePath, dependencies, useClient, hash, packageName
       })
     }
-
-    async buildGraph() {
-      return await this.depGraph.build();
-    }
   }
 
   const sourceFile = new SourceFileImpl(file);
-  await sourceFile.parse();
+  await sourceFile.analyze();
+
   sourceFileCache.set(sourceFile.filePath, sourceFile);
-  return sourceFile as SourceFile;
+
+  return sourceFile;
 }
+
