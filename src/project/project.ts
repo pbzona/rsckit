@@ -5,18 +5,33 @@ import { createFinderFn, inferRoutesFromPagePaths } from "./utils";
 import { printHeadingAlt, printMessage } from "@/lib/output";
 import { ProjectConfig, AnalysisResult } from "./types";
 import { SourceFileRepository } from "@/source-file/repository";
-import { createCache } from "@/cache/cache";
+import { createCache, type Cache } from "@/cache/cache";
 
 export class Project {
   private sourceFiles: SourceFileRepository;
   private parser: ParserService;
+  private cache: Cache<SourceFile>;
 
   constructor(private config: ProjectConfig) {
     this.parser = new ParserService(config.parser.options);
+    this.cache = createCache<SourceFile>("source-files.json");
     this.sourceFiles = new SourceFileRepository(
       this.parser,
-      createCache<SourceFile>("source-files.json")
+      this.cache
     );
+  }
+
+  async restoreCache(): Promise<void> {
+    // Pass parser service and factory to properly reconstruct SourceFile instances
+    const { createSourceFile } = await import("@/source-file/source-file");
+    // Create a factory wrapper that includes the cache
+    const factory = (filePath: string, parserService: ParserService) =>
+      createSourceFile(filePath, parserService, this.cache);
+    await this.cache.restoreFromFile(this.parser, factory);
+  }
+
+  async saveCache(): Promise<void> {
+    await this.cache.writeToFile();
   }
 
   async findPages(): Promise<SourceFile[]> {

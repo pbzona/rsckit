@@ -52,8 +52,36 @@ export const analyze = async (options: Options) => {
       }
     });
 
+    // Restore cache from disk unless --skipCache is specified
+    if (!options.skipCache) {
+      await project.restoreCache();
+    }
+
     const result = await project.analyze();
-    console.log(result);
+
+    // Save cache to disk for next run
+    await project.saveCache();
+
+    // Output summary
+    console.log('\n=== Analysis Summary ===');
+    console.log(`Pages found: ${result.pages.length}`);
+    console.log(`Routes: ${result.routes.join(', ')}`);
+    console.log(`Client boundaries: ${result.clientBoundaries.length}`);
+
+    console.log('\n=== Page Details ===');
+    for (const page of result.pages) {
+      console.log(`\n${page.filePath}`);
+      console.log(`  - Server component: ${!page.useClient}`);
+      console.log(`  - Dependencies: ${page.dependencies.length}`);
+      if (page.dependencies.length > 0) {
+        page.dependencies.slice(0, 5).forEach(dep => {
+          console.log(`    • ${dep.split('/').slice(-2).join('/')}`);
+        });
+        if (page.dependencies.length > 5) {
+          console.log(`    ... and ${page.dependencies.length - 5} more`);
+        }
+      }
+    }
   } catch (error) {
     throw error;
   } finally {

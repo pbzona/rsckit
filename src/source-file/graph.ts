@@ -1,4 +1,4 @@
-import { sourceFileCache } from "@/cache";
+import type { Cache } from "@/cache";
 import { Stack } from "@/lib/stack";
 import { SourceFile } from "./source-file";
 
@@ -29,9 +29,12 @@ export class Graph {
   current: GraphNode;
   ancestors: Stack<GraphNode>;
   visited: Set<string> = new Set();
-  clientBoundaries: ClientBoundary[];
+  clientBoundaries: ClientBoundary[] = [];
 
-  constructor(root: SourceFile) {
+  constructor(
+    root: SourceFile,
+    private cache: Cache<SourceFile>
+  ) {
     this.current = GraphNode.fromSourceFile(root);
 
     this.graph = this.current;
@@ -48,11 +51,11 @@ export class Graph {
       return this.build();
     }
 
-    const sourceFile = sourceFileCache.get(this.current.filePath);
+    const sourceFile = this.cache.get(this.current.filePath);
     const parent = this.ancestors.peek();
 
     for (const dep of sourceFile.dependencies) {
-      const file = sourceFileCache.get(dep);
+      const file = this.cache.get(dep);
       const node = GraphNode.fromSourceFile(file);
 
       if (!parent.useClient && node.useClient) {

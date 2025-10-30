@@ -15,7 +15,7 @@ export class SourceFileRepository {
     if (cached) {
       // If the cached value is just raw data, reconstruct it
       if (!('analyze' in cached)) {
-        const sourceFile = await this.createSourceFile(filePath);
+        const sourceFile = new SourceFileImpl(filePath, this.parser, this.cache);
         Object.assign(sourceFile, cached);
         await sourceFile.analyze();
         this.cache.set(filePath, sourceFile);
@@ -29,7 +29,7 @@ export class SourceFileRepository {
 
   private async createSourceFile(filePath: string): Promise<SourceFile> {
     printMessage(`Creating source file object for ${displayName(filePath)}`);
-    const sourceFile = new SourceFileImpl(filePath, this.parser);
+    const sourceFile = new SourceFileImpl(filePath, this.parser, this.cache);
     await sourceFile.analyze();
     this.cache.set(filePath, sourceFile);
     return sourceFile;

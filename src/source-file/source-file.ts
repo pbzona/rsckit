@@ -6,7 +6,7 @@ import { findParentPackage } from "@/lib/package";
 import { hashString } from "@/lib/hash";
 import { displayName, fileNameFromPath } from "@/lib/utils";
 import { Serializable } from "@/lib/serialize";
-import { sourceFileCache } from "@/cache";
+import type { Cache } from "@/cache/cache";
 import { getImports, hasUseClientDirective } from "@/parser/operations";
 import { printMessage } from "@/lib/output";
 import { ParserService } from "@/parser/service";
@@ -23,10 +23,6 @@ export interface SourceFile {
   analyze: () => Promise<void>;
 }
 
-function inCache(filePath: string): boolean {
-  return sourceFileCache.has(filePath);
-}
-
 export class SourceFileImpl implements Serializable {
   dependencies: string[] = [];
   useClient: boolean = false;
@@ -36,9 +32,10 @@ export class SourceFileImpl implements Serializable {
 
   constructor(
     public filePath: string,
-    private parserService: ParserService
+    private parserService: ParserService,
+    private cache: Cache<SourceFile>
   ) {
-    sourceFileCache.set(filePath, this);
+    this.cache.set(filePath, this);
 
     if (this.isNodeModule()) {
       this.getPackage();
@@ -59,10 +56,10 @@ export class SourceFileImpl implements Serializable {
   }
 
   maybeUpdateCache(): void {
-    if (inCache(this.filePath)) {
-      const { hash } = sourceFileCache.get(this.filePath)
+    if (this.cache.has(this.filePath)) {
+      const { hash } = this.cache.get(this.filePath)
       if (hash !== this.hash) {
-        sourceFileCache.set(this.filePath, this);
+        this.cache.set(this.filePath, this);
       }
     }
   }
@@ -101,9 +98,9 @@ export class SourceFileImpl implements Serializable {
     this.dependencies = await getImports(this.parser);
     // Note to future self - don't create these concurrently
     for (const dep of this.dependencies) {
-      if (!inCache((dep))) {
+      if (!this.cache.has(dep)) {
         printMessage(`Creating source file object for ${displayName(dep)}`)
-        await createSourceFile(dep, this.parserService)
+        await createSourceFile(dep, this.parserService, this.cache)
       }
     }
 
@@ -126,25 +123,29 @@ export class SourceFileImpl implements Serializable {
   }
 }
 
-export async function createSourceFile(file: string, parserService: ParserService) {
+export async function createSourceFile(
+  file: string,
+  parserService: ParserService,
+  cache: Cache<SourceFile>
+) {
   // Check the cache first
-  if (inCache(file)) {
-    const cached = sourceFileCache.get(file);
+  if (cache.has(file)) {
+    const cached = cache.get(file);
     // If the cached value is just raw data, reconstruct it
     if (!('analyze' in cached)) {
-      const sourceFile = new SourceFileImpl(file, parserService);
+      const sourceFile = new SourceFileImpl(file, parserService, cache);
       Object.assign(sourceFile, cached);
       await sourceFile.analyze();
-      sourceFileCache.set(file, sourceFile);
+      cache.set(file, sourceFile);
       return sourceFile;
     }
     return cached;
   }
 
-  const sourceFile = new SourceFileImpl(file, parserService);
+  const sourceFile = new SourceFileImpl(file, parserService, cache);
   await sourceFile.analyze();
 
-  sourceFileCache.set(sourceFile.filePath, sourceFile);
+  cache.set(sourceFile.filePath, sourceFile);
 
   return sourceFile;
 }

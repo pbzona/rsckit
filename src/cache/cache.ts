@@ -14,7 +14,7 @@ export interface Cache<T> {
   has: (key: string) => boolean;
   serialize: () => string;
   writeToFile: () => void;
-  restoreFromFile: () => Promise<void>;
+  restoreFromFile: (parserService?: ParserService, factory?: SourceFileFactory<T>) => Promise<void>;
 }
 
 type SourceFileFactory<T> = (filePath: string, parserService: ParserService) => Promise<T>;
@@ -67,7 +67,7 @@ export function createCache<T extends Serializable>(
       }
     }
 
-    async restoreFromFile() {
+    async restoreFromFile(parserServiceArg?: ParserService, factory?: SourceFileFactory<T>) {
       try {
         if (!existsSync(
           path.resolve(Config.outputDirectory, this.cacheFile)
@@ -79,12 +79,14 @@ export function createCache<T extends Serializable>(
         );
         const parsed = JSON.parse(serializedContent.toString());
 
-        if (parserService && sourceFileFactory) {
+        // If factory is provided (e.g. for SourceFile cache), use it to reconstruct instances
+        if (factory && parserServiceArg) {
           for (const [key, value] of Object.entries(parsed)) {
-            const sourceFile = await sourceFileFactory(key, parserService);
+            const sourceFile = await factory(key, parserServiceArg);
             this.data.set(key, sourceFile as unknown as T);
           }
         } else {
+          // For simple caches, just restore the plain objects
           for (const [key, value] of Object.entries(parsed)) {
             // Value is a serialized string, parse it back to an object
             const parsedValue = typeof value === 'string' ? JSON.parse(value) : value;
