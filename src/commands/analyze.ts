@@ -1,10 +1,9 @@
 import * as path from "node:path"
 import { Command } from "commander";
 import chalk from "chalk";
-import { createProject } from "@/project/project";
+import { Project } from "@/project/project";
 import { Config } from "@/config";
-import { printHeading, printMessage } from "@/lib/output";
-import { sourceFileCache } from "@/cache";
+import { printHeading } from "@/lib/output";
 
 interface Options {
   projectDir?: string;
@@ -26,30 +25,35 @@ export const analyze = async (options: Options) => {
   // Resolve options
   const _projectDir = options.projectDir ?
     path.resolve(here, options.projectDir) : Config.projectDirectory;
-  const _skipCache = !!options.skipCache
 
   // Need to temporarily change dir for globbing to work 
   // for some reason (??), will fix this eventually
   process.chdir(_projectDir);
 
   try {
-    if (!_skipCache) {
-      await sourceFileCache.restoreFromFile()
-    }
-
-    // Initialize the project and parser
+    // Initialize the project
     printHeading(
       `Analyzing ${_projectDir.split("/").slice(-1)[0]}`
-    )
-    const project = await createProject(_projectDir);
+    );
 
-    // Do stuff with the pages found in the project
-    for (const page of project.pages) {
-      // Todo build a dep graph here so I can easily find RSC boundaries
-      console.log(page)
-    }
+    const project = new Project({
+      root: _projectDir,
+      tsConfig: {
+        path: path.join(_projectDir, "tsconfig.json"),
+        options: {
+          compilerOptions: {} // TODO: Load actual tsconfig
+        }
+      },
+      parser: {
+        options: {
+          projectRoot: _projectDir,
+          tsConfigPath: path.join(_projectDir, "tsconfig.json")
+        }
+      }
+    });
 
-    await sourceFileCache.writeToFile()
+    const result = await project.analyze();
+    console.log(result);
   } catch (error) {
     throw error;
   } finally {

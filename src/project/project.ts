@@ -1,53 +1,46 @@
 import path from "node:path";
-import { createSourceFile, SourceFile } from "@/source-file/source-file";
-import { createParserFactory } from "@/parser/parser";
+import { SourceFile } from "@/source-file/source-file";
+import { ParserService } from "@/parser/service";
 import { createFinderFn, inferRoutesFromPagePaths } from "./utils";
 import { printHeadingAlt, printMessage } from "@/lib/output";
+import { ProjectConfig, AnalysisResult } from "./types";
+import { SourceFileRepository } from "@/source-file/repository";
+import { createCache } from "@/cache/cache";
 
-export interface Project {
-  root: string;
-  tsConfigPath: string;
-  pages: SourceFile[];
-  routes: string[];
-}
+export class Project {
+  private sourceFiles: SourceFileRepository;
+  private parser: ParserService;
 
-export async function createProject(root: string, tsConfigPath?: string) {
-  // Set  up finder functions - might use this for layouts, etc later
-  const findFilesByName = (fileName: string) => createFinderFn(
-    root, fileName
-  );
-  const findPages = findFilesByName("page");
-
-  // Resolve to absolute paths if needed
-  const _root = path.resolve(root);
-  const _tsConfigPath = tsConfigPath ?
-    path.resolve(tsConfigPath) :
-    path.resolve(path.join(root, "tsconfig.json"));
-
-  // Using a factory here so I can close over the project settings
-  // and pass them to the parser without each file needing to 
-  // keep a reference
-  const parserFactory = createParserFactory({
-    projectRoot: _root,
-    tsConfigPath: _tsConfigPath
-  })
-
-  printHeadingAlt("Finding app router pages...");
-  const _pages = [];
-  const pagePaths = await findPages();
-
-  printMessage("Found pages:");
-  for (const page of pagePaths) {
-    _pages.push(await createSourceFile(page, parserFactory));
+  constructor(private config: ProjectConfig) {
+    this.parser = new ParserService(config.parser.options);
+    this.sourceFiles = new SourceFileRepository(
+      this.parser,
+      createCache<SourceFile>("source-files.json")
+    );
   }
 
-  printHeadingAlt("Inferring routes...")
-  const _routes = inferRoutesFromPagePaths(pagePaths);
+  async findPages(): Promise<SourceFile[]> {
+    const findPages = createFinderFn(this.config.root, "page");
+    const pagePaths = await findPages();
+    return this.sourceFiles.findAll(pagePaths);
+  }
 
-  return {
-    root: _root,
-    tsConfigPath: _tsConfigPath,
-    pages: _pages,
-    routes: _routes
-  };
+  async analyze(): Promise<AnalysisResult> {
+    printHeadingAlt("Finding app router pages...");
+    const pages = await this.findPages();
+
+    printMessage("Found pages:");
+    for (const page of pages) {
+      console.log(page.filePath);
+    }
+
+    printHeadingAlt("Inferring routes...");
+    const routes = inferRoutesFromPagePaths(pages.map(p => p.filePath));
+
+    return {
+      pages,
+      routes,
+      clientBoundaries: [] // TODO: Implement client boundary detection
+    };
+  }
 }

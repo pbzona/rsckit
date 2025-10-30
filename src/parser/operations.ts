@@ -2,7 +2,7 @@ import cabinet from "filing-cabinet";
 import detective from "detective-typescript";
 import { Parser } from "./parser"
 import j from "jscodeshift";
-import { filterEmptyPaths, filterNonEcmaPaths } from "./filters.ts";
+import { filterEmptyPaths, filterNonEcmaPaths } from "./filters";
 
 type ParserOperation<R> = (parser: Parser) => R
 

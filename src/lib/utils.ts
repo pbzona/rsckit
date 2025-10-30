@@ -24,10 +24,10 @@ export const getAppDirFromRoot = async (root: string) => {
   }
 }
 
-export const displayName = (filePath: FilePath) => {
+export const displayName = (filePath: string) => {
   return filePath.split("/").slice(-2).join("/")
 }
 
-export const fileNameFromPath = (filePath: FilePath) => {
+export const fileNameFromPath = (filePath: string) => {
   return path.basename(filePath).replace(path.extname(filePath), "");
 }

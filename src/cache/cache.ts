@@ -3,6 +3,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { deserializeMap, Serializable } from "@/lib/serialize";
 import { Config } from "@/config";
+import { z } from 'zod';
+import { ParserService } from "@/parser/service";
 
 type CacheData<T extends Serializable> = Map<string, T>;
 
@@ -12,10 +14,16 @@ export interface Cache<T> {
   has: (key: string) => boolean;
   serialize: () => string;
   writeToFile: () => void;
-  restoreFromFile: () => void;
+  restoreFromFile: () => Promise<void>;
 }
 
-export function createCache<T extends Serializable>(filename?: string) {
+type SourceFileFactory<T> = (filePath: string, parserService: ParserService) => Promise<T>;
+
+export function createCache<T extends Serializable>(
+  filename?: string,
+  parserService?: ParserService,
+  sourceFileFactory?: SourceFileFactory<T>
+) {
   class CacheImpl<T extends Serializable> implements Serializable, Cache<T> {
     data: CacheData<T> = new Map();
     cacheFile: string;
@@ -61,21 +69,28 @@ export function createCache<T extends Serializable>(filename?: string) {
 
     async restoreFromFile() {
       try {
-        // If cache file does not exist return early to prevent error on read
         if (!existsSync(
           path.resolve(Config.outputDirectory, this.cacheFile)
         )) return;
-
-        // Clear the cache before restoring
         this.data.clear();
-
+        // If cache file does not exist return early to prevent error on read file
         const serializedContent = await fs.readFile(
           path.resolve(Config.outputDirectory, this.cacheFile)
         );
-        const restore = serializedContent.toString()
-        this.data = deserializeMap<T>(
-          restore.toString()
-        );
+        const parsed = JSON.parse(serializedContent.toString());
+
+        if (parserService && sourceFileFactory) {
+          for (const [key, value] of Object.entries(parsed)) {
+            const sourceFile = await sourceFileFactory(key, parserService);
+            this.data.set(key, sourceFile as unknown as T);
+          }
+        } else {
+          for (const [key, value] of Object.entries(parsed)) {
+            // Value is a serialized string, parse it back to an object
+            const parsedValue = typeof value === 'string' ? JSON.parse(value) : value;
+            this.data.set(key, parsedValue as T);
+          }
+        }
       } catch (error) {
         if (error instanceof Error) {
           throw error;
@@ -88,4 +103,3 @@ export function createCache<T extends Serializable>(filename?: string) {
 
   return new CacheImpl<T>(filename)
 }
-
