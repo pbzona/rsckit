@@ -70,25 +70,60 @@ To test this, be sure to run `pnpm install` if you've made any changes and rebui
 
 ### CLI
 
-Currently this is just a file crawler and component dependency checker. It will show the number of page.tsx files in your app directory (accounts for other valid extensions as well). You can run it using the `analyze` command:
+The CLI tool crawls your Next.js application to understand the relationships between Server and Client Components.
+
+#### Analyze
+
+The `analyze` command builds a dependency graph of your application and identifies **Client Boundaries** (points where a Server Component imports a Client Component).
 
 ```sh
-pnpm rsckit:analyze --projectDir "/path/to/your-project" 
+pnpm rsckit:analyze --projectDir "/path/to/your-project"
+```
+
+**Output:**
+
+The command outputs a summary of your project structure and a detailed tree view of client boundaries:
+
+```
+=== Client Boundaries ===
+
+src/app/page.tsx -> src/components/Header.tsx
+  └─ Header.tsx (client)
+    └─ Logo.tsx (client)
+    └─ Nav.tsx (client)
+      └─ Link.tsx (client)
+```
+
+**Options:**
+
+*   `--projectDir <path>`: The root of your Next.js project (defaults to current directory).
+*   `--json`: Output analysis results as JSON (useful for piping to other tools).
+*   `--skipCache`: Force a fresh analysis instead of reading from `.rsckit/source-files.json`.
+
+**JSON Output Example:**
+
+```bash
+pnpm rsckit:analyze --json > analysis.json
+```
+
+This produces a machine-readable format:
+
+```json
+{
+  "pages": [...],
+  "routes": ["/"],
+  "clientBoundaries": [
+    {
+      "serverComponent": "/abs/path/to/page.tsx",
+      "clientComponent": "/abs/path/to/header.tsx"
+    }
+  ]
+}
 ```
 
 The dependency graph for your project will be stored on disk in the `.rsckit` directory. Cached results will be read here before each command, but you can prevent this with the `--skipCache` flag.
 
 Use the `--help` flag for more details.
-
-In the future, this will index and analyze the structure of your Next.js project - for example, finding and instrumenting client components via a codemod. For now, you can find client components manually:
-
-```sh
-grep 'use client' ./**/*.(js|jsx|tsx)
-# or
-rg 'use client' .
-```
-
-There are other ways to do this, use whatever tools you're comfortable with.
 
 ## Why?
 

@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { Project } from "@/project/project";
 import { Config } from "@/config";
 import { printHeading } from "@/lib/output";
+import { pageDisplayName } from "@/lib/utils";
 
 interface Options {
   projectDir?: string;
@@ -46,7 +47,7 @@ async function printDependencyTree(project: Project, filePath: string, depth: nu
         ? chalk.gray(relativeName) 
         : isClient 
           ? chalk.cyan(relativeName) 
-          : relativeName;
+          : chalk.yellow(relativeName);
 
       console.log(`${prefix}└─ ${label}`);
 
@@ -123,9 +124,11 @@ export const analyze = async (options: Options) => {
     console.log('\n=== Analysis Summary ===');
     console.log(`Pages found: ${result.pages.length}`);
     console.log(`Routes: ${result.routes.join(', ')}`);
-    console.log(`Client boundaries: ${result.clientBoundaries.length}`);
+    console.log(`Server/client boundaries: ${result.clientBoundaries.length}\n`);
 
-    console.log('\n=== Page Analysis ===');
+    console.log(`${chalk.cyan('■')} Client Component`);
+    console.log(`${chalk.yellow('■')} Server Component`);
+    console.log(`${chalk.gray('■')} Node Module`);
     
     // Group boundaries by server component (Page)
     const boundariesByPage = new Map<string, typeof result.clientBoundaries>();
@@ -137,7 +140,8 @@ export const analyze = async (options: Options) => {
     }
 
     for (const page of result.pages) {
-      console.log(`\n${chalk.bold(page.filePath)}`);
+      const pageName = pageDisplayName(page.filePath);
+      console.log(`\n${chalk.bold(pageName)}`);
       
       const boundaries = boundariesByPage.get(page.filePath);
       
@@ -145,7 +149,7 @@ export const analyze = async (options: Options) => {
         console.log(`  ${chalk.yellow("Client Boundaries:")}`);
         for (const boundary of boundaries) {
           const clientName = boundary.clientComponent.split('/').slice(-2).join('/');
-          console.log(`    └─ ${chalk.green(clientName)}`);
+          console.log(`    └─ ${chalk.cyan.bold(clientName)}`);
           
           // Print tree for the client component
           // We start at depth 2 to align with the boundary list

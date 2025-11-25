@@ -28,6 +28,14 @@ export const displayName = (filePath: string) => {
   return filePath.split("/").slice(-2).join("/")
 }
 
+export const pageDisplayName = (filePath: string) => {
+  if (!filePath.includes("app")) {
+    printError(`File path ${filePath} does not include "app"`);
+    return filePath;
+  }
+  return filePath.split("app")[1];
+}
+
 export const fileNameFromPath = (filePath: string) => {
   return path.basename(filePath).replace(path.extname(filePath), "");
 }

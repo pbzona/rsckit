@@ -8,6 +8,16 @@ jest.mock("globby", () => ({
   globby: jest.fn()
 }));
 
+// Mock chalk to prevent ESM issues
+jest.mock("chalk", () => {
+  const handler = {
+    get: () => proxy,
+    apply: (_target: any, _this: any, args: any[]) => args[0],
+  };
+  const proxy = new Proxy(() => {}, handler);
+  return proxy;
+});
+
 // Mock the Project class
 jest.mock("@/project/project");
 
