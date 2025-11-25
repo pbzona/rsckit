@@ -41,6 +41,10 @@ export class Project {
     return this.sourceFiles.findAll(pagePaths);
   }
 
+  async getSourceFile(filePath: string): Promise<SourceFile> {
+    return this.sourceFiles.find(filePath);
+  }
+
   async analyze(): Promise<AnalysisResult> {
     printHeadingAlt("Finding app router pages...");
     const pages = await this.findPages();

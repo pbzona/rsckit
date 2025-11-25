@@ -8,6 +8,7 @@ import { printHeading } from "@/lib/output";
 interface Options {
   projectDir?: string;
   skipCache?: boolean;
+  json?: boolean;
 }
 
 export const registerAnalyzeCommand = (program: Command) => {
@@ -16,7 +17,46 @@ export const registerAnalyzeCommand = (program: Command) => {
     .description("Crawl your project to prepare it for querying and reporting")
     .option("-p, --projectDir <string>", "the root of your Next.js project")
     .option("--skipCache", "do not read cached results from disk before parsing")
+    .option("--json", "output analysis result as JSON")
     .action((options) => analyze(options));
+}
+
+async function printDependencyTree(project: Project, filePath: string, depth: number = 1, maxDepth: number = 3, visited = new Set<string>()) {
+  if (depth > maxDepth) return;
+  
+  if (visited.has(filePath)) return;
+  visited.add(filePath);
+
+  try {
+    const file = await project.getSourceFile(filePath);
+    if (!file) return;
+
+    for (const dep of file.dependencies) {
+      const isNodeModule = dep.includes("node_modules");
+      const prefix = "  ".repeat(depth);
+      const relativeName = dep.split("/").slice(-2).join("/");
+      
+      let isClient = false;
+      try {
+        const depFile = await project.getSourceFile(dep);
+        isClient = depFile?.useClient;
+      } catch {}
+
+      const label = isNodeModule 
+        ? chalk.gray(relativeName) 
+        : isClient 
+          ? chalk.cyan(relativeName) 
+          : relativeName;
+
+      console.log(`${prefix}└─ ${label}`);
+
+      if (!isNodeModule) {
+        await printDependencyTree(project, dep, depth + 1, maxDepth, visited);
+      }
+    }
+  } catch (e) {
+    // Ignore missing files
+  }
 }
 
 export const analyze = async (options: Options) => {
@@ -32,9 +72,11 @@ export const analyze = async (options: Options) => {
 
   try {
     // Initialize the project
-    printHeading(
-      `Analyzing ${_projectDir.split("/").slice(-1)[0]}`
-    );
+    if (!options.json) {
+      printHeading(
+        `Analyzing ${_projectDir.split("/").slice(-1)[0]}`
+      );
+    }
 
     const project = new Project({
       root: _projectDir,
@@ -62,24 +104,55 @@ export const analyze = async (options: Options) => {
     // Save cache to disk for next run
     await project.saveCache();
 
+    if (options.json) {
+      // Create a clean JSON object without internal classes/circular deps
+      const jsonOutput = {
+        pages: result.pages.map(p => ({
+          filePath: p.filePath,
+          useClient: p.useClient,
+          dependencies: p.dependencies
+        })),
+        routes: result.routes,
+        clientBoundaries: result.clientBoundaries
+      };
+      console.log(JSON.stringify(jsonOutput, null, 2));
+      return;
+    }
+
     // Output summary
     console.log('\n=== Analysis Summary ===');
     console.log(`Pages found: ${result.pages.length}`);
     console.log(`Routes: ${result.routes.join(', ')}`);
     console.log(`Client boundaries: ${result.clientBoundaries.length}`);
 
-    console.log('\n=== Page Details ===');
+    console.log('\n=== Page Analysis ===');
+    
+    // Group boundaries by server component (Page)
+    const boundariesByPage = new Map<string, typeof result.clientBoundaries>();
+    for (const boundary of result.clientBoundaries) {
+      if (!boundariesByPage.has(boundary.serverComponent)) {
+        boundariesByPage.set(boundary.serverComponent, []);
+      }
+      boundariesByPage.get(boundary.serverComponent)?.push(boundary);
+    }
+
     for (const page of result.pages) {
-      console.log(`\n${page.filePath}`);
-      console.log(`  - Server component: ${!page.useClient}`);
-      console.log(`  - Dependencies: ${page.dependencies.length}`);
-      if (page.dependencies.length > 0) {
-        page.dependencies.slice(0, 5).forEach(dep => {
-          console.log(`    • ${dep.split('/').slice(-2).join('/')}`);
-        });
-        if (page.dependencies.length > 5) {
-          console.log(`    ... and ${page.dependencies.length - 5} more`);
+      console.log(`\n${chalk.bold(page.filePath)}`);
+      
+      const boundaries = boundariesByPage.get(page.filePath);
+      
+      if (boundaries && boundaries.length > 0) {
+        console.log(`  ${chalk.yellow("Client Boundaries:")}`);
+        for (const boundary of boundaries) {
+          const clientName = boundary.clientComponent.split('/').slice(-2).join('/');
+          console.log(`    └─ ${chalk.green(clientName)}`);
+          
+          // Print tree for the client component
+          // We start at depth 2 to align with the boundary list
+          await printDependencyTree(project, boundary.clientComponent, 3);
         }
+      } else {
+        console.log(`  ${chalk.gray("(No client boundaries found)")}`);
       }
     }
   } catch (error) {
