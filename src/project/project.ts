@@ -76,4 +76,29 @@ export class Project {
       clientBoundaries,
     };
   }
+
+  getAnalysisFromCache(): AnalysisResult {
+    const pages = this.sourceFiles.all().filter((f) => f.isPage);
+    const routes = inferRoutesFromPagePaths(pages.map((p) => p.filePath));
+    const clientBoundaries: ClientBoundary[] = [];
+
+    for (const page of pages) {
+      const graph = new Graph(page, this.cache);
+      graph.build();
+      const boundaries = graph.getClientBoundaries();
+
+      for (const b of boundaries) {
+        clientBoundaries.push({
+          serverComponent: b.serverComponent.filePath,
+          clientComponent: b.clientComponent.filePath,
+        });
+      }
+    }
+
+    return {
+      pages,
+      routes,
+      clientBoundaries,
+    };
+  }
 }

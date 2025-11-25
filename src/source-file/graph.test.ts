@@ -11,6 +11,7 @@ class MockSourceFile implements SourceFile {
   hash = "123";
   size = 0;
   packageName?: string;
+  isPage = false;
 
   constructor(path: string, deps: string[] = [], useClient = false) {
     this.filePath = path;

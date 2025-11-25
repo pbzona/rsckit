@@ -58,6 +58,19 @@ describe("analyze command", () => {
       routes: ["/"],
       clientBoundaries: [],
     };
+    const expectedOutput = {
+      pages: [
+        {
+          filePath: "page.tsx",
+          useClient: false,
+          dependencies: [],
+          size: 0,
+          formattedSize: "0 Bytes",
+        },
+      ],
+      routes: ["/"],
+      clientBoundaries: [],
+    };
     mockProject.analyze.mockResolvedValue(mockResult);
 
     await analyze({ json: true, skipCache: true });
@@ -67,7 +80,7 @@ describe("analyze command", () => {
     const lastCall = consoleLogSpy.mock.calls[0][0];
     const parsed = JSON.parse(lastCall);
 
-    expect(parsed).toEqual(mockResult);
+    expect(parsed).toEqual(expectedOutput);
   });
 
   it("skips human-readable logs when --json is present", async () => {

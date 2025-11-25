@@ -42,4 +42,8 @@ export class SourceFileRepository {
   async findAll(filePaths: string[]): Promise<SourceFile[]> {
     return Promise.all(filePaths.map((path) => this.find(path)));
   }
+
+  all(): SourceFile[] {
+    return Array.from(this.cache.values());
+  }
 }

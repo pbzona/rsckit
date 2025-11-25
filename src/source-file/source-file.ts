@@ -19,6 +19,7 @@ export interface SourceFile {
   packageName?: string;
   hash: string;
   size: number;
+  isPage: boolean;
   serialize: () => string;
   read: () => Promise<string>;
   analyze: () => Promise<void>;

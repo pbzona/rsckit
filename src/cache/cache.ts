@@ -11,6 +11,7 @@ export interface Cache<T> {
   get: (key: string) => T;
   set: (key: string, val: T) => T;
   has: (key: string) => boolean;
+  values: () => IterableIterator<T>;
   serialize: () => string;
   writeToFile: () => void;
   restoreFromFile: (
@@ -44,6 +45,10 @@ export function createCache<T extends Serializable>(filename?: string) {
 
     has(key: string) {
       return this.data.has(key);
+    }
+
+    values() {
+      return this.data.values();
     }
 
     serialize() {

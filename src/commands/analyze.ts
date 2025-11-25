@@ -3,7 +3,10 @@ import { Config } from "@/config";
 import { formatBytes } from "@/lib/bytes";
 import { printHeading } from "@/lib/output";
 import { pageDisplayName } from "@/lib/utils";
+import { AnalysisOutput } from "@/project/analysis-types";
+import { calculateTreeSize } from "@/project/metrics";
 import { Project } from "@/project/project";
+import { addSizeTransform, applyTransforms } from "@/project/transforms";
 import chalk from "chalk";
 import { Command } from "commander";
 
@@ -29,28 +32,6 @@ export const registerAnalyzeCommand = (program: Command) => {
     .option("--maxDepth <number>", "max depth for dependency tree", "3")
     .action((options) => analyze(options));
 };
-
-async function calculateTreeSize(
-  project: Project,
-  filePath: string,
-  visited = new Set<string>(),
-): Promise<number> {
-  if (visited.has(filePath)) return 0;
-  visited.add(filePath);
-
-  try {
-    const file = await project.getSourceFile(filePath);
-    if (!file) return 0;
-
-    let total = file.size;
-    for (const dep of file.dependencies) {
-      total += await calculateTreeSize(project, dep, visited);
-    }
-    return total;
-  } catch {
-    return 0;
-  }
-}
 
 async function printDependencyTree(
   project: Project,
@@ -215,16 +196,21 @@ export const analyze = async (options: Options) => {
 
     if (options.json) {
       // Create a clean JSON object without internal classes/circular deps
-      const jsonOutput = {
+      const baseOutput: AnalysisOutput = {
         pages: result.pages.map((p) => ({
           filePath: p.filePath,
           useClient: p.useClient,
           dependencies: p.dependencies,
         })),
         routes: result.routes,
-        clientBoundaries: result.clientBoundaries,
+        clientBoundaries: result.clientBoundaries as any,
       };
-      console.log(JSON.stringify(jsonOutput, null, 2));
+
+      const finalOutput = await applyTransforms(baseOutput, project, [
+        addSizeTransform,
+      ]);
+
+      console.log(JSON.stringify(finalOutput, null, 2));
       return;
     }
 

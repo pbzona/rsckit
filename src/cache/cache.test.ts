@@ -18,6 +18,7 @@ class MockSourceFile implements SourceFile {
   packageName?: string;
   hash = "mock-hash";
   size = 0;
+  isPage = false;
 
   serialize() {
     return JSON.stringify({ filePath: this.filePath });
