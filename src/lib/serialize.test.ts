@@ -1,8 +1,8 @@
 import {
-  serializeMap,
-  serializeSet,
   deserializeMap,
   deserializeSet,
+  serializeMap,
+  serializeSet,
 } from "./serialize";
 
 describe("@/lib/serialize.ts", () => {

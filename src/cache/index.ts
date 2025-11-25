@@ -1,4 +1,2 @@
-import { SourceFile } from "@/source-file/source-file";
-import { createCache } from "./cache";
-
-export const sourceFileCache = createCache<SourceFile>("source-files.json");
+// Re-export cache utilities
+export { createCache, type Cache } from "./cache";

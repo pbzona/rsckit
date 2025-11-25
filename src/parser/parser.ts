@@ -1,9 +1,9 @@
 import * as fs from "node:fs";
-import j, { Collection } from "jscodeshift";
-import swc, { Module } from "@swc/core";
-import { SourceFile } from "@/source-file/source-file";
 import { printWarning } from "@/lib/output";
 import { chooseParser } from "@/lib/parser-utils";
+import { SourceFile } from "@/source-file/source-file";
+import swc, { Module } from "@swc/core";
+import j, { Collection } from "jscodeshift";
 
 export type ParserAST = Module;
 
@@ -89,7 +89,7 @@ export function createParserFactory(options: ParserOptions): ParserFactory {
     }
   }
 
-  return async function (sourceFile: SourceFile): Promise<Parser> {
+  return async (sourceFile: SourceFile): Promise<Parser> => {
     const parser = new ParserImpl(sourceFile);
     await parser.init();
     return parser;

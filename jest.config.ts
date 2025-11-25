@@ -10,10 +10,12 @@ const config: JestConfigWithTsJest = {
   collectCoverage: true,
   roots: ['<rootDir>'],
   modulePaths: [compilerOptions.baseUrl],
-  moduleNameMapper: pathsToModuleNameMapper(
-    compilerOptions.paths, {
-    prefix: '<rootDir>/'
-  })
+  moduleNameMapper: {
+    ...pathsToModuleNameMapper(compilerOptions.paths, {
+      prefix: '<rootDir>/'
+    }),
+    '^chalk$': '<rootDir>/__mocks__/chalk.ts'
+  }
 };
 
 export default config;

@@ -1,8 +1,8 @@
-import cabinet from "filing-cabinet";
 import detective from "detective-typescript";
-import { Parser } from "./parser";
+import cabinet from "filing-cabinet";
 import j from "jscodeshift";
-import { filterEmptyPaths, filterNonEcmaPaths } from "./filters.ts";
+import { filterEmptyPaths, filterNonEcmaPaths } from "./filters";
+import { Parser } from "./parser";
 
 type ParserOperation<R> = (parser: Parser) => R;
 
@@ -12,7 +12,7 @@ const createParserOperation = <R>(fn: ParserOperation<R>) => {
 };
 
 export const getImports = createParserOperation<Promise<string[]>>(
-  async function (parser: Parser) {
+  async (parser: Parser) => {
     const imports = detective(parser.ast, {
       jsx: true,
       skipAsyncImports: true,
@@ -35,18 +35,15 @@ export const getImports = createParserOperation<Promise<string[]>>(
 );
 
 // todo: implement this
-export const getExports = createParserOperation<any>(async function (
-  parser: Parser,
-) {
-  return parser;
-});
+export const getExports = createParserOperation<any>(
+  async (parser: Parser) => parser,
+);
 
 export const hasUseClientDirective = createParserOperation<Promise<boolean>>(
-  async function (parser: Parser) {
-    return Boolean(
+  async (parser: Parser) =>
+    Boolean(
       parser.collection
         .find(j.DirectiveLiteral)
         .filter((path) => path.node.value === "use client").length,
-    );
-  },
+    ),
 );

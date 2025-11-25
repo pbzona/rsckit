@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { deserializeMap, Serializable } from "@/lib/serialize";
 import { Config } from "@/config";
+import { Serializable } from "@/lib/serialize";
+import { ParserService } from "@/parser/service";
 
 type CacheData<T extends Serializable> = Map<string, T>;
 
@@ -12,8 +13,16 @@ export interface Cache<T> {
   has: (key: string) => boolean;
   serialize: () => string;
   writeToFile: () => void;
-  restoreFromFile: () => void;
+  restoreFromFile: (
+    parserService?: ParserService,
+    factory?: SourceFileFactory<T>,
+  ) => Promise<void>;
 }
+
+type SourceFileFactory<T> = (
+  filePath: string,
+  parserService: ParserService,
+) => Promise<T>;
 
 export function createCache<T extends Serializable>(filename?: string) {
   class CacheImpl<T extends Serializable> implements Serializable, Cache<T> {
@@ -62,20 +71,35 @@ export function createCache<T extends Serializable>(filename?: string) {
       }
     }
 
-    async restoreFromFile() {
+    async restoreFromFile(
+      parserServiceArg?: ParserService,
+      factory?: SourceFileFactory<T>,
+    ) {
       try {
-        // If cache file does not exist return early to prevent error on read
         if (!existsSync(path.resolve(Config.outputDirectory, this.cacheFile)))
           return;
-
-        // Clear the cache before restoring
         this.data.clear();
-
+        // If cache file does not exist return early to prevent error on read file
         const serializedContent = await fs.readFile(
           path.resolve(Config.outputDirectory, this.cacheFile),
         );
-        const restore = serializedContent.toString();
-        this.data = deserializeMap<T>(restore.toString());
+        const parsed = JSON.parse(serializedContent.toString());
+
+        // If factory is provided (e.g. for SourceFile cache), use it to reconstruct instances
+        if (factory && parserServiceArg) {
+          for (const [key, value] of Object.entries(parsed)) {
+            const sourceFile = await factory(key, parserServiceArg);
+            this.data.set(key, sourceFile as unknown as T);
+          }
+        } else {
+          // For simple caches, just restore the plain objects
+          for (const [key, value] of Object.entries(parsed)) {
+            // Value is a serialized string, parse it back to an object
+            const parsedValue =
+              typeof value === "string" ? JSON.parse(value) : value;
+            this.data.set(key, parsedValue as T);
+          }
+        }
       } catch (error) {
         if (error instanceof Error) {
           throw error;
