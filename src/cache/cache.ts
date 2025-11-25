@@ -1,9 +1,8 @@
 import { existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { deserializeMap, Serializable } from "@/lib/serialize";
+import { Serializable } from "@/lib/serialize";
 import { Config } from "@/config";
-import { z } from 'zod';
 import { ParserService } from "@/parser/service";
 
 type CacheData<T extends Serializable> = Map<string, T>;
@@ -21,8 +20,6 @@ type SourceFileFactory<T> = (filePath: string, parserService: ParserService) => 
 
 export function createCache<T extends Serializable>(
   filename?: string,
-  parserService?: ParserService,
-  sourceFileFactory?: SourceFileFactory<T>
 ) {
   class CacheImpl<T extends Serializable> implements Serializable, Cache<T> {
     data: CacheData<T> = new Map();
