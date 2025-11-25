@@ -17,6 +17,7 @@ class MockSourceFile implements SourceFile {
   useClient = false;
   packageName?: string;
   hash = "mock-hash";
+  size = 0;
 
   serialize() {
     return JSON.stringify({ filePath: this.filePath });

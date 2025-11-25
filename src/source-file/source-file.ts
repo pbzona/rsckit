@@ -18,6 +18,7 @@ export interface SourceFile {
   useClient: boolean;
   packageName?: string;
   hash: string;
+  size: number;
   serialize: () => string;
   read: () => Promise<string>;
   analyze: () => Promise<void>;
@@ -28,6 +29,7 @@ export class SourceFileImpl implements Serializable {
   useClient = false;
   packageName?: string;
   hash = "";
+  size = 0;
   parser: Parser | null = null;
 
   constructor(
@@ -70,6 +72,7 @@ export class SourceFileImpl implements Serializable {
     const fileContent = await fs.readFile(this.filePath, "utf8");
     const str = fileContent.toString();
     this.hash = hashString(str);
+    this.size = Buffer.byteLength(str);
     return str;
   }
 
@@ -120,6 +123,7 @@ export class SourceFileImpl implements Serializable {
       useClient: this.useClient,
       packageName: this.packageName,
       hash: this.hash,
+      size: this.size,
     };
     return JSON.stringify(data);
   }

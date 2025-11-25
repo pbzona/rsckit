@@ -9,6 +9,7 @@ class MockSourceFile implements SourceFile {
   dependencies: string[];
   useClient: boolean;
   hash = "123";
+  size = 0;
   packageName?: string;
 
   constructor(path: string, deps: string[] = [], useClient = false) {
