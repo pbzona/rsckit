@@ -3,9 +3,10 @@ import { SourceFile } from "@/source-file/source-file";
 import { ParserService } from "@/parser/service";
 import { createFinderFn, inferRoutesFromPagePaths } from "./utils";
 import { printHeadingAlt, printMessage } from "@/lib/output";
-import { ProjectConfig, AnalysisResult } from "./types";
+import { ProjectConfig, AnalysisResult, ClientBoundary } from "./types";
 import { SourceFileRepository } from "@/source-file/repository";
 import { createCache, type Cache } from "@/cache/cache";
+import { Graph } from "@/source-file/graph";
 
 export class Project {
   private sourceFiles: SourceFileRepository;
@@ -52,10 +53,26 @@ export class Project {
     printHeadingAlt("Inferring routes...");
     const routes = inferRoutesFromPagePaths(pages.map(p => p.filePath));
 
+    printHeadingAlt("Detecting client boundaries...");
+    const clientBoundaries: ClientBoundary[] = [];
+    
+    for (const page of pages) {
+      const graph = new Graph(page, this.cache);
+      graph.build();
+      const boundaries = graph.getClientBoundaries();
+      
+      for (const b of boundaries) {
+        clientBoundaries.push({
+          serverComponent: b.serverComponent.filePath,
+          clientComponent: b.clientComponent.filePath
+        });
+      }
+    }
+
     return {
       pages,
       routes,
-      clientBoundaries: [] // TODO: Implement client boundary detection
+      clientBoundaries
     };
   }
 }

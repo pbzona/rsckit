@@ -1,5 +1,4 @@
 import type { Cache } from "@/cache";
-import { Stack } from "@/lib/stack";
 import { SourceFile } from "./source-file";
 
 type ClientBoundary = {
@@ -7,10 +6,10 @@ type ClientBoundary = {
   clientComponent: GraphNode;
 };
 
-class GraphNode {
+export class GraphNode {
   dependencies: GraphNode[] = [];
 
-  private constructor(
+  constructor(
     public filePath: string,
     public useClient: boolean,
   ) { }
@@ -26,53 +25,58 @@ class GraphNode {
 
 export class Graph {
   graph: GraphNode;
-  current: GraphNode;
-  ancestors: Stack<GraphNode>;
-  visited: Set<string> = new Set();
+  // Map filePath to GraphNode to ensure reference equality and handle cycles
+  nodes: Map<string, GraphNode> = new Map();
   clientBoundaries: ClientBoundary[] = [];
 
   constructor(
     root: SourceFile,
     private cache: Cache<SourceFile>
   ) {
-    this.current = GraphNode.fromSourceFile(root);
-
-    this.graph = this.current;
-    this.ancestors = new Stack(this.current);
+    this.graph = GraphNode.fromSourceFile(root);
+    this.nodes.set(root.filePath, this.graph);
   }
 
   build() {
-    console.log("Building graph");
-    if (
-      this.current.dependencies.length === 0 ||
-      this.visited.has(this.current.filePath)
-    ) {
-      this.current = this.ancestors.pop();
-      return this.build();
-    }
+    // console.log("Building graph for", this.graph.filePath);
+    this.traverse(this.graph);
+    return this.graph;
+  }
 
-    const sourceFile = this.cache.get(this.current.filePath);
-    const parent = this.ancestors.peek();
+  private traverse(node: GraphNode) {
+    const sourceFile = this.cache.get(node.filePath);
+    if (!sourceFile) return;
 
-    for (const dep of sourceFile.dependencies) {
-      const file = this.cache.get(dep);
-      const node = GraphNode.fromSourceFile(file);
+    for (const depPath of sourceFile.dependencies) {
+      let depNode = this.nodes.get(depPath);
+      let isNew = false;
 
-      if (!parent.useClient && node.useClient) {
+      // If we haven't seen this node before, create it
+      if (!depNode) {
+        const depFile = this.cache.get(depPath);
+        if (!depFile) continue; // Skip if not in cache (e.g. external lib ignored by parser)
+        
+        depNode = GraphNode.fromSourceFile(depFile);
+        this.nodes.set(depPath, depNode);
+        isNew = true;
+      }
+
+      // Detect Client Boundary: Server -> Client
+      if (!node.useClient && depNode.useClient) {
         this.clientBoundaries.push({
-          serverComponent: parent,
-          clientComponent: node,
+          serverComponent: node,
+          clientComponent: depNode,
         });
       }
 
-      parent.addDependency(node);
-      this.ancestors.push(node);
-      this.current = node;
-      this.visited.add(this.current.filePath);
-      return this.build();
-    }
+      // Add dependency edge
+      node.addDependency(depNode);
 
-    return this.current;
+      // Recurse only if this is a new node (avoid infinite loops)
+      if (isNew) {
+        this.traverse(depNode);
+      }
+    }
   }
 
   getClientBoundaries() {
