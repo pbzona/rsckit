@@ -94,7 +94,7 @@ describe("report command", () => {
       { filePath: "page.tsx", useClient: false, dependencies: ["parent.tsx"] },
     ];
     const mockBoundaries = [
-      { serverComponent: "page.tsx", clientComponent: "parent.tsx" },
+      { parent: "page.tsx", child: "parent.tsx" },
     ];
 
     mockProject.getAllCachedFiles.mockReturnValue([
@@ -150,7 +150,7 @@ describe("report command", () => {
       { filePath: "page.tsx", useClient: false, dependencies: ["parent.tsx"] },
     ];
     const mockBoundaries = [
-      { serverComponent: "page.tsx", clientComponent: "parent.tsx" },
+      { parent: "page.tsx", child: "parent.tsx" },
     ];
 
     mockProject.getAllCachedFiles.mockReturnValue([

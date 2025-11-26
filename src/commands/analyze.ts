@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import { Config } from "@/config";
-import { printHeading, printSuccess, setQuiet } from "@/lib/output";
+import { printHeading, printSuccess } from "@/lib/output";
 import { Project } from "@/project/project";
 import { Command } from "commander";
 
@@ -29,11 +29,6 @@ export const registerAnalyzeCommand = (program: Command) => {
 
 export const analyze = async (options: Options) => {
   const here = process.cwd();
-
-  // Analyze is verbose by default unless explicitly silenced (which isn't an option yet)
-  // But actually, we want it to show "Creating source file..." messages.
-  // setQuiet(false) is the default.
-  setQuiet(false);
 
   // Resolve options
   const _projectDir = options.projectDir

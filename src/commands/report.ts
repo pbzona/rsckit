@@ -1,12 +1,7 @@
 import * as path from "node:path";
 import { Config } from "@/config";
 import { formatBytes } from "@/lib/bytes";
-import {
-  printHeading,
-  printHeadingAlt,
-  printMessage,
-  setQuiet,
-} from "@/lib/output";
+import { printError, printHeading } from "@/lib/output";
 import { pageDisplayName } from "@/lib/utils";
 import { AnalysisOutput } from "@/project/analysis-types";
 import { calculateTreeSize } from "@/project/metrics";
@@ -15,6 +10,7 @@ import { addSizeTransform, applyTransforms } from "@/project/transforms";
 import chalk from "chalk";
 import { Command } from "commander";
 import task from "tasuku";
+import { printDependencyTree } from "@/project/dependency-tree";
 
 interface Options {
   projectDir?: string;
@@ -34,128 +30,8 @@ export const registerReportCommand = (program: Command) => {
     .action((options) => report(options));
 };
 
-async function printDependencyTree(
-  project: Project,
-  filePath: string,
-  depth = 1,
-  maxDepth = 3,
-  maxSiblings = Infinity,
-  visited = new Set<string>(),
-) {
-  if (depth > maxDepth) return;
-
-  if (visited.has(filePath)) return;
-  visited.add(filePath);
-
-  try {
-    const file = await project.getSourceFile(filePath);
-    if (!file) return;
-
-    const siblingFiles = await Promise.all(
-      file.dependencies.map(async (dep) => {
-        try {
-          return { path: dep, file: await project.getSourceFile(dep) };
-        } catch {
-          return { path: dep, file: undefined };
-        }
-      }),
-    );
-
-    // Sort by size descending
-    siblingFiles.sort((a, b) => {
-      const sizeA = a.file?.size || 0;
-      const sizeB = b.file?.size || 0;
-      if (sizeA !== sizeB) {
-        return sizeB - sizeA;
-      }
-      // Secondary sort by path for stability
-      return a.path.localeCompare(b.path);
-    });
-
-    let leafCount = 0;
-    let skippedLeaves = 0;
-
-    for (const { path: dep, file: depFile } of siblingFiles) {
-      const isNodeModule = dep.includes("node_modules");
-
-      // Determine if it's a branch (has children and we are not at max depth)
-      // Note: node_modules are effectively leaves in this visualization
-      let isBranch = false;
-      if (
-        !isNodeModule &&
-        depth < maxDepth &&
-        !visited.has(dep) &&
-        depFile &&
-        depFile.dependencies.length > 0
-      ) {
-        isBranch = true;
-      }
-
-      // If it is a branch, we always show it.
-      // If it is a leaf, we check the limit.
-      if (!isBranch) {
-        if (maxSiblings !== Infinity && leafCount >= maxSiblings) {
-          skippedLeaves++;
-          continue;
-        }
-        leafCount++;
-      }
-
-      const prefix = "  ".repeat(depth);
-      const relativeName = dep.split("/").slice(-2).join("/");
-
-      let isClient = false;
-      let size = 0;
-
-      if (depFile) {
-        isClient = depFile.useClient;
-        size = depFile.size;
-      }
-
-      const sizeLabel =
-        size > 0
-          ? isClient
-            ? chalk.bold.cyan(` (${formatBytes(size)})`)
-            : chalk.gray(` (${formatBytes(size)})`)
-          : "";
-
-      const label = isNodeModule
-        ? chalk.gray(relativeName)
-        : isClient
-          ? chalk.cyan(relativeName) + sizeLabel
-          : chalk.yellow(relativeName) + sizeLabel;
-
-      console.log(`${prefix}└─ ${label}`);
-
-      if (!isNodeModule) {
-        await printDependencyTree(
-          project,
-          dep,
-          depth + 1,
-          maxDepth,
-          maxSiblings,
-          visited,
-        );
-      }
-    }
-
-    if (skippedLeaves > 0) {
-      const prefix = "  ".repeat(depth);
-      console.log(`${prefix}└─ ${chalk.gray(`... ${skippedLeaves} more`)}`);
-    }
-  } catch (e) {
-    // Ignore missing files
-  }
-}
-
 export const report = async (options: Options) => {
   const here = process.cwd();
-
-  // Quiet mode for report command to avoid "Creating source file..." logs
-  // unless we are in json mode where we shouldn't print anything anyway
-  // BUT wait, if we are in JSON mode we definitely don't want "Creating source file" logs
-  // If we are in normal mode, we want tasuku to handle the "status", so we should suppress low level logs too.
-  setQuiet(true);
 
   // Resolve options
   const _projectDir = options.projectDir
@@ -181,7 +57,7 @@ export const report = async (options: Options) => {
       },
     });
 
-    // If outputting JSON, we don't want tasuku logs either
+    // If outputting JSON, we don't want tasuku logs
     if (options.json) {
       await project.restoreCache();
       const result = project.getAnalysisFromCache();
@@ -202,8 +78,6 @@ export const report = async (options: Options) => {
         addSizeTransform,
       ]);
 
-      // Reset quiet so we can print the JSON
-      setQuiet(false);
       console.log(JSON.stringify(finalOutput, null, 2));
       return;
     }
@@ -240,10 +114,6 @@ export const report = async (options: Options) => {
       await applyTransforms(baseOutput, project, [addSizeTransform]);
     });
 
-    // Now we are done with "loading" tasks, we can print the report.
-    // We need to enable output again for the report content.
-    setQuiet(false);
-
     const result = analysisResult;
 
     // Output summary
@@ -261,10 +131,10 @@ export const report = async (options: Options) => {
     // Group boundaries by server component (Page)
     const boundariesByPage = new Map<string, typeof result.clientBoundaries>();
     for (const boundary of result.clientBoundaries) {
-      if (!boundariesByPage.has(boundary.serverComponent)) {
-        boundariesByPage.set(boundary.serverComponent, []);
+      if (!boundariesByPage.has(boundary.parent)) {
+        boundariesByPage.set(boundary.parent, []);
       }
-      boundariesByPage.get(boundary.serverComponent)?.push(boundary);
+      boundariesByPage.get(boundary.parent)?.push(boundary);
     }
 
     for (const page of result.pages) {
@@ -278,7 +148,7 @@ export const report = async (options: Options) => {
           page.filePath,
           2,
           options.maxDepth ? Number.parseInt(options.maxDepth) : 3,
-          options.verbose ? Infinity : 4,
+          options.verbose ? Number.POSITIVE_INFINITY : 4,
         );
       }
 
@@ -287,7 +157,7 @@ export const report = async (options: Options) => {
       if (boundaries && boundaries.length > 0) {
         console.log(`  ${chalk.yellow("Client Boundaries:")}`);
         for (const boundary of boundaries) {
-          const clientName = boundary.clientComponent
+          const clientName = boundary.child
             .split("/")
             .slice(-2)
             .join("/");
@@ -295,11 +165,11 @@ export const report = async (options: Options) => {
           let size = 0;
           let treeSize = 0;
           try {
-            const file = await project.getSourceFile(boundary.clientComponent);
+            const file = await project.getSourceFile(boundary.child);
             size = file?.size || 0;
             treeSize = await calculateTreeSize(
               project,
-              boundary.clientComponent,
+              boundary.child,
             );
           } catch {}
           const sizeLabel = chalk.gray(
@@ -312,10 +182,10 @@ export const report = async (options: Options) => {
           // We start at depth 2 to align with the boundary list
           await printDependencyTree(
             project,
-            boundary.clientComponent,
+            boundary.child,
             3,
             (options.maxDepth ? Number.parseInt(options.maxDepth) : 3) + 2, // Adjust relative depth
-            options.verbose ? Infinity : 4,
+            options.verbose ? Number.POSITIVE_INFINITY : 4,
           );
         }
       } else {
@@ -325,9 +195,9 @@ export const report = async (options: Options) => {
   } catch (e) {
     // Tasuku handles errors in tasks, but if we threw outside:
     if (e instanceof Error) {
-      console.error(chalk.red(e.message));
+      printError(e.message);
     } else {
-      console.error(e);
+      printError(e);
     }
   } finally {
     process.chdir(here);

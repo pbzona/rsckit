@@ -114,8 +114,8 @@ This produces a machine-readable format:
   "routes": ["/"],
   "clientBoundaries": [
     {
-      "serverComponent": "/abs/path/to/page.tsx",
-      "clientComponent": "/abs/path/to/header.tsx"
+      "parent": "/abs/path/to/page.tsx",
+      "child": "/abs/path/to/header.tsx"
     }
   ]
 }

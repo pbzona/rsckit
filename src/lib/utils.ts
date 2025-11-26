@@ -29,10 +29,20 @@ export const displayName = (filePath: string) => {
 };
 
 export const pageDisplayName = (filePath: string) => {
-  if (!filePath.includes("app")) {
-    return displayName(filePath);
+  // Find the FIRST occurrence of "app" surrounded by path separators
+  const match = filePath.match(/(^|[\\\/])app[\\\/]/);
+
+  if (match) {
+    const endOfMatch = (match.index ?? 0) + match[0].length;
+    return "/" + filePath.substring(endOfMatch);
   }
-  return filePath.split("app")[1];
+
+  // Handle case where path ends with /app (though unlikely for a file)
+  if (filePath.match(/(^|[\\\/])app$/)) {
+    return "/";
+  }
+
+  return displayName(filePath);
 };
 
 export const fileNameFromPath = (filePath: string) => {

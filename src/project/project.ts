@@ -64,8 +64,8 @@ export class Project {
 
       for (const b of boundaries) {
         clientBoundaries.push({
-          serverComponent: b.serverComponent.filePath,
-          clientComponent: b.clientComponent.filePath,
+          parent: b.parent.filePath,
+          child: b.child.filePath,
         });
       }
     }
@@ -89,8 +89,8 @@ export class Project {
 
       for (const b of boundaries) {
         clientBoundaries.push({
-          serverComponent: b.serverComponent.filePath,
-          clientComponent: b.clientComponent.filePath,
+          parent: b.parent.filePath,
+          child: b.child.filePath,
         });
       }
     }

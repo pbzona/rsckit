@@ -31,6 +31,6 @@ export interface AnalysisResult {
 }
 
 export interface ClientBoundary {
-  serverComponent: string;
-  clientComponent: string;
+  parent: string;
+  child: string;
 }

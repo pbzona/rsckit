@@ -86,8 +86,8 @@ describe("Graph", () => {
 
     const boundaries = graph.getClientBoundaries();
     expect(boundaries).toHaveLength(1);
-    expect(boundaries[0].serverComponent.filePath).toBe("page.tsx");
-    expect(boundaries[0].clientComponent.filePath).toBe("client.tsx");
+    expect(boundaries[0].parent.filePath).toBe("page.tsx");
+    expect(boundaries[0].child.filePath).toBe("client.tsx");
   });
 
   it("does NOT flag Client -> Client as a boundary", () => {

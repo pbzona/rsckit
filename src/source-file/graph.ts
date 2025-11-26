@@ -2,8 +2,8 @@ import type { Cache } from "@/cache";
 import { SourceFile } from "./source-file";
 
 type ClientBoundary = {
-  serverComponent: GraphNode;
-  clientComponent: GraphNode;
+  parent: GraphNode;
+  child: GraphNode;
 };
 
 export class GraphNode {
@@ -64,8 +64,8 @@ export class Graph {
       // Detect Client Boundary: Server -> Client
       if (!node.useClient && depNode.useClient) {
         this.clientBoundaries.push({
-          serverComponent: node,
-          clientComponent: depNode,
+          parent: node,
+          child: depNode,
         });
       }
 

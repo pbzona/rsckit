@@ -21,11 +21,11 @@ export const addSizeTransform: AnalysisTransform = async (
 ) => {
   const newClientBoundaries = await Promise.all(
     output.clientBoundaries.map(async (boundary) => {
-      const file = await project.getSourceFile(boundary.clientComponent);
+      const file = await project.getSourceFile(boundary.child);
       const size = file?.size || 0;
       const treeSize = await calculateTreeSize(
         project,
-        boundary.clientComponent,
+        boundary.child,
       );
 
       return {
