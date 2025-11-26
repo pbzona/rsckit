@@ -38,6 +38,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.0.0
+      tasuku:
+        specifier: ^2.0.2
+        version: 2.0.2
       zod:
         specifier: ^3.24.2
         version: 3.24.2
@@ -2276,6 +2279,9 @@ packages:
   tapable@2.2.1:
     resolution: {integrity: sha512-GNzQvQTOIP6RyTfE2Qxb8ZVlNmw0n88vp1szwWRimP02mnTsx3Wtn5qRdqY9w2XduFNUgvOwhNnQsjwCp+kqaQ==}
     engines: {node: '>=6'}
+
+  tasuku@2.0.2:
+    resolution: {integrity: sha512-7WT61fFiiMPvcXqcECaO2UH17VugTwLsyPbK2dEK8UgeI/WntNj4fmbbRpJ/l81MW+Le/uyRUTKchZG6qpvdFA==}
 
   test-exclude@6.0.0:
     resolution: {integrity: sha512-cAGWPIyOHU6zlmg88jwm7VRyXnMN7iV68OGAbYDk/Mh/xC/pzVPlQtY6ngoIH/5/tciuhGfvESU8GrHrcxD56w==}
@@ -4904,6 +4910,8 @@ snapshots:
   supports-preserve-symlinks-flag@1.0.0: {}
 
   tapable@2.2.1: {}
+
+  tasuku@2.0.2: {}
 
   test-exclude@6.0.0:
     dependencies:

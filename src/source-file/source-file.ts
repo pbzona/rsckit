@@ -2,14 +2,13 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { Cache } from "@/cache/cache";
 import { hashString } from "@/lib/hash";
-import { printMessage } from "@/lib/output";
+import { printCacheHit, printMessage, printPageCreation } from "@/lib/output";
 import { findParentPackage } from "@/lib/package";
 import { Serializable } from "@/lib/serialize";
 import { displayName, fileNameFromPath } from "@/lib/utils";
 import { getImports, hasUseClientDirective } from "@/parser/operations";
 import { Parser } from "@/parser/parser";
 import { ParserService } from "@/parser/service";
-import chalk from "chalk";
 
 export interface SourceFile {
   filePath: string;
@@ -45,9 +44,7 @@ export class SourceFileImpl implements Serializable {
     }
 
     if (this.isPage) {
-      printMessage(
-        `${chalk.green.bold("Creating page")} ${displayName(filePath)}`,
-      );
+      printPageCreation(displayName(filePath));
     }
   }
 
@@ -98,10 +95,24 @@ export class SourceFileImpl implements Serializable {
   }
 
   async analyze(): Promise<void> {
-    this.parser = await this.parserService.parse(this);
+    const cachedHash = this.hash;
+    await this.read();
 
-    // Get dependencies recursively
-    this.dependencies = await getImports(this.parser);
+    if (!cachedHash || cachedHash !== this.hash) {
+      this.parser = await this.parserService.parse(this);
+
+      // Get dependencies recursively
+      this.dependencies = await getImports(this.parser);
+
+      // Check to see if the file contains a use client directive
+      this.useClient = await hasUseClientDirective(this.parser);
+
+      // Update the cache if necessary
+      this.maybeUpdateCache();
+    } else {
+      printCacheHit(displayName(this.filePath));
+    }
+
     // Note to future self - don't create these concurrently
     for (const dep of this.dependencies) {
       if (!this.cache.has(dep)) {
@@ -109,12 +120,6 @@ export class SourceFileImpl implements Serializable {
         await createSourceFile(dep, this.parserService, this.cache);
       }
     }
-
-    // Check to see if the file contains a use client directive
-    this.useClient = await hasUseClientDirective(this.parser);
-
-    // Update the cache if necessary
-    this.maybeUpdateCache();
   }
 
   serialize(): string {

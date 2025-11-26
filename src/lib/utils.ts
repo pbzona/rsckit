@@ -30,8 +30,7 @@ export const displayName = (filePath: string) => {
 
 export const pageDisplayName = (filePath: string) => {
   if (!filePath.includes("app")) {
-    printError(`File path ${filePath} does not include "app"`);
-    return filePath;
+    return displayName(filePath);
   }
   return filePath.split("app")[1];
 };

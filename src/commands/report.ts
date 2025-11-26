@@ -1,17 +1,20 @@
 import * as path from "node:path";
 import { Config } from "@/config";
 import { formatBytes } from "@/lib/bytes";
-import { printHeading } from "@/lib/output";
+import {
+  printHeading,
+  printHeadingAlt,
+  printMessage,
+  setQuiet,
+} from "@/lib/output";
 import { pageDisplayName } from "@/lib/utils";
 import { AnalysisOutput } from "@/project/analysis-types";
 import { calculateTreeSize } from "@/project/metrics";
 import { Project } from "@/project/project";
 import { addSizeTransform, applyTransforms } from "@/project/transforms";
-import { ClientBoundary } from "@/project/types";
-import { inferRoutesFromPagePaths } from "@/project/utils";
-import { Graph } from "@/source-file/graph";
 import chalk from "chalk";
 import { Command } from "commander";
+import task from "tasuku";
 
 interface Options {
   projectDir?: string;
@@ -148,6 +151,12 @@ async function printDependencyTree(
 export const report = async (options: Options) => {
   const here = process.cwd();
 
+  // Quiet mode for report command to avoid "Creating source file..." logs
+  // unless we are in json mode where we shouldn't print anything anyway
+  // BUT wait, if we are in JSON mode we definitely don't want "Creating source file" logs
+  // If we are in normal mode, we want tasuku to handle the "status", so we should suppress low level logs too.
+  setQuiet(true);
+
   // Resolve options
   const _projectDir = options.projectDir
     ? path.resolve(here, options.projectDir)
@@ -156,11 +165,6 @@ export const report = async (options: Options) => {
   process.chdir(_projectDir);
 
   try {
-    // Initialize the project
-    if (!options.json) {
-      printHeading(`Reporting on ${_projectDir.split("/").slice(-1)[0]}`);
-    }
-
     const project = new Project({
       root: _projectDir,
       tsConfig: {
@@ -177,24 +181,13 @@ export const report = async (options: Options) => {
       },
     });
 
-    const maxDepth = options.maxDepth ? Number.parseInt(options.maxDepth) : 3;
-    const maxSiblings = options.verbose ? Infinity : 4;
-
-    // Restore cache from disk (Crucial: This populates the SourceFile objects)
-    await project.restoreCache();
-
-    // Get analysis from cache without re-scanning disk
-    const result = project.getAnalysisFromCache();
-
-    if (result.pages.length === 0) {
-      console.log(
-        chalk.yellow("No pages found in cache. Run 'analyze' first."),
-      );
-      return;
-    }
-
+    // If outputting JSON, we don't want tasuku logs either
     if (options.json) {
-      // Create a clean JSON object without internal classes/circular deps
+      await project.restoreCache();
+      const result = project.getAnalysisFromCache();
+
+      if (result.pages.length === 0) return; // Or error?
+
       const baseOutput: AnalysisOutput = {
         pages: result.pages.map((p) => ({
           filePath: p.filePath,
@@ -209,9 +202,49 @@ export const report = async (options: Options) => {
         addSizeTransform,
       ]);
 
+      // Reset quiet so we can print the JSON
+      setQuiet(false);
       console.log(JSON.stringify(finalOutput, null, 2));
       return;
     }
+
+    printHeading(`Reporting on ${_projectDir.split("/").slice(-1)[0]}`);
+
+    // Use tasuku for phases
+    let analysisResult: any = null;
+
+    await task("Loading analysis from cache", async () => {
+      await project.restoreCache();
+      analysisResult = project.getAnalysisFromCache();
+
+      if (analysisResult.pages.length === 0) {
+        throw new Error("No pages found in cache. Run 'analyze' first.");
+      }
+    });
+
+    await task("Calculating metrics", async () => {
+      // We run the transforms here just to ensure data is ready for display,
+      // though currently printDependencyTree calculates size on the fly.
+      // We might want to unify this later. For now, this phase is fast enough.
+      // Actually, let's just run the transforms for the sake of "work being done"
+      // and maybe future proofing.
+      const baseOutput: AnalysisOutput = {
+        pages: analysisResult.pages.map((p: any) => ({
+          filePath: p.filePath,
+          useClient: p.useClient,
+          dependencies: p.dependencies,
+        })),
+        routes: analysisResult.routes,
+        clientBoundaries: analysisResult.clientBoundaries as any,
+      };
+      await applyTransforms(baseOutput, project, [addSizeTransform]);
+    });
+
+    // Now we are done with "loading" tasks, we can print the report.
+    // We need to enable output again for the report content.
+    setQuiet(false);
+
+    const result = analysisResult;
 
     // Output summary
     console.log("\n=== Analysis Summary ===");
@@ -244,8 +277,8 @@ export const report = async (options: Options) => {
           project,
           page.filePath,
           2,
-          maxDepth,
-          maxSiblings,
+          options.maxDepth ? Number.parseInt(options.maxDepth) : 3,
+          options.verbose ? Infinity : 4,
         );
       }
 
@@ -281,8 +314,8 @@ export const report = async (options: Options) => {
             project,
             boundary.clientComponent,
             3,
-            maxDepth + 2, // Adjust relative depth
-            maxSiblings,
+            (options.maxDepth ? Number.parseInt(options.maxDepth) : 3) + 2, // Adjust relative depth
+            options.verbose ? Infinity : 4,
           );
         }
       } else {
@@ -290,7 +323,12 @@ export const report = async (options: Options) => {
       }
     }
   } catch (e) {
-    console.error(e);
+    // Tasuku handles errors in tasks, but if we threw outside:
+    if (e instanceof Error) {
+      console.error(chalk.red(e.message));
+    } else {
+      console.error(e);
+    }
   } finally {
     process.chdir(here);
   }

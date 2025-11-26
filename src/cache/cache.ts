@@ -5,19 +5,25 @@ import { Config } from "@/config";
 import { Serializable } from "@/lib/serialize";
 import { ParserService } from "@/parser/service";
 
+// The user wants the cache to be a "Big JS Object"
+// So we use a Map for the underlying storage for performance
+// but it serializes to a big JS object
 type CacheData<T extends Serializable> = Map<string, T>;
 
 export interface Cache<T> {
-  get: (key: string) => T;
+  get: (key: string) => T | undefined;
   set: (key: string, val: T) => T;
   has: (key: string) => boolean;
   values: () => IterableIterator<T>;
   serialize: () => string;
-  writeToFile: () => void;
+  writeToFile: () => Promise<void>;
   restoreFromFile: (
     parserService?: ParserService,
     factory?: SourceFileFactory<T>,
   ) => Promise<void>;
+  // We add quiet state here as requested to avoid brittle global state
+  isQuiet: boolean;
+  setQuiet: (quiet: boolean) => void;
 }
 
 type SourceFileFactory<T> = (
@@ -29,9 +35,14 @@ export function createCache<T extends Serializable>(filename?: string) {
   class CacheImpl<T extends Serializable> implements Serializable, Cache<T> {
     data: CacheData<T> = new Map();
     cacheFile: string;
+    isQuiet = false;
 
     constructor(file?: string) {
       this.cacheFile = file || "cache.json";
+    }
+
+    setQuiet(quiet: boolean) {
+      this.isQuiet = quiet;
     }
 
     get(key: string) {
@@ -52,9 +63,9 @@ export function createCache<T extends Serializable>(filename?: string) {
     }
 
     serialize() {
-      const serializable = {};
+      const serializable: Record<string, unknown> = {};
       for (const [k, v] of this.data.entries()) {
-        serializable[k] = v.serialize();
+        serializable[k] = v.serialize ? JSON.parse(v.serialize()) : v;
       }
       return JSON.stringify(serializable);
     }
@@ -81,28 +92,32 @@ export function createCache<T extends Serializable>(filename?: string) {
       factory?: SourceFileFactory<T>,
     ) {
       try {
-        if (!existsSync(path.resolve(Config.outputDirectory, this.cacheFile)))
-          return;
-        this.data.clear();
-        // If cache file does not exist return early to prevent error on read file
-        const serializedContent = await fs.readFile(
-          path.resolve(Config.outputDirectory, this.cacheFile),
-        );
-        const parsed = JSON.parse(serializedContent.toString());
+        const fullPath = path.resolve(Config.outputDirectory, this.cacheFile);
+        if (!existsSync(fullPath)) return;
 
-        // If factory is provided (e.g. for SourceFile cache), use it to reconstruct instances
+        this.data.clear();
+
+        const serializedContent = await fs.readFile(fullPath, "utf8");
+        const parsed = JSON.parse(serializedContent);
+
         if (factory && parserServiceArg) {
-          for (const [key, value] of Object.entries(parsed)) {
-            const sourceFile = await factory(key, parserServiceArg);
-            this.data.set(key, sourceFile as unknown as T);
-          }
+          await Promise.all(
+            Object.entries(parsed).map(async ([key, value]) => {
+              // Temporarily set raw data so the factory (if it checks cache) finds it
+              // This allows the factory to hydrate the object instead of creating a new one from scratch
+              this.data.set(key, value as T);
+
+              // Use the factory to reconstruct/hydrate the instance
+              const sourceFile = await factory(key, parserServiceArg);
+
+              // Replace the raw data with the fully hydrated instance
+              this.data.set(key, sourceFile);
+            }),
+          );
         } else {
           // For simple caches, just restore the plain objects
           for (const [key, value] of Object.entries(parsed)) {
-            // Value is a serialized string, parse it back to an object
-            const parsedValue =
-              typeof value === "string" ? JSON.parse(value) : value;
-            this.data.set(key, parsedValue as T);
+            this.data.set(key, value as T);
           }
         }
       } catch (error) {

@@ -19,6 +19,14 @@ jest.mock("chalk", () => {
 // Mock the Project class
 jest.mock("@/project/project");
 
+// Mock tasuku
+jest.mock("tasuku", () => {
+  return jest.fn(async (_title, action) => {
+    await action();
+    return { result: null };
+  });
+});
+
 describe("report command", () => {
   let consoleLogSpy: jest.SpyInstance;
 

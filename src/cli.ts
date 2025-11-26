@@ -2,6 +2,7 @@
 
 import { Command } from "commander";
 import { registerAnalyzeCommand } from "./commands/analyze";
+import { registerReportCommand } from "./commands/report";
 
 async function main() {
   const program = new Command();
@@ -9,6 +10,7 @@ async function main() {
   program.name("rsckit").description("CLI for analyzing your Next.js project");
 
   registerAnalyzeCommand(program);
+  registerReportCommand(program);
 
   await program.parseAsync(process.argv);
 }
