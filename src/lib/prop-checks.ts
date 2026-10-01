@@ -1,42 +1,46 @@
-import { estimateBytes, formatBytes, parseBytes } from "./bytes";
+import {
+  estimateJsonBytes,
+  formatBytes,
+  parseBytes,
+  type JsonEstimate,
+} from "./bytes";
 
-export type BasicProp = {
+export interface BasicProp {
   name: string;
-  value: any;
-};
-
-// For checking whether a prop meets a certain condition
-// () => true; the condition is met, etc.
+  value: unknown;
+}
+export interface PropCheckResult {
+  result: boolean;
+  message: string | null;
+  estimate: JsonEstimate;
+}
 export type PropCheckFunction = (
   prop: BasicProp,
   componentName: string,
-  comparisonValue?: unknown,
-) => boolean | Promise<boolean>;
+  comparisonValue?: string | number,
+) => PropCheckResult;
 
-// Return the result and message to return for further processing
-export type PropCheckResult = {
-  result: boolean;
-  message: string;
-};
-
-// Utility functions - ONLY EXPORT NAMED FUNCTIONS!!! (might need Function.name in the future)
-// Check if a prop's value is larger than the optional comparison value, default 100 bytes
 export function isPropLarge(
   prop: BasicProp,
   componentName: string,
   comparisonValue: string | number = "100B",
-) {
-  const sizeInBytes = estimateBytes(prop.value);
-  const maxSize =
+): PropCheckResult {
+  const estimate = estimateJsonBytes(prop.value);
+  const threshold =
     typeof comparisonValue === "string"
       ? parseBytes(comparisonValue)
       : comparisonValue;
-  const result = sizeInBytes > maxSize;
-
+  if (!Number.isFinite(threshold) || threshold < 0)
+    throw new Error("Prop threshold must be a finite nonnegative byte count");
+  const result = estimate.bytes !== null && estimate.bytes > threshold;
   return {
     result,
-    message: result
-      ? `${componentName}#${prop.name}: ${formatBytes(sizeInBytes)}`
-      : null,
+    estimate,
+    message:
+      estimate.bytes === null
+        ? `${componentName}#${prop.name}: JSON estimate unavailable (${estimate.reason})`
+        : result
+          ? `${componentName}#${prop.name}: ${formatBytes(estimate.bytes)} JSON UTF-8 estimate`
+          : null,
   };
 }

@@ -1,4 +1,9 @@
-import { estimateBytes, formatBytes, parseBytes } from "./bytes";
+import {
+  estimateBytes,
+  estimateJsonBytes,
+  formatBytes,
+  parseBytes,
+} from "./bytes";
 
 describe("@/lib/bytes.ts", () => {
   describe("estimateBytes", () => {
@@ -14,12 +19,43 @@ describe("@/lib/bytes.ts", () => {
       expect(b).toEqual(13);
     });
 
-    it("should return 0 for a non-serializable value", () => {
+    it("should return null for a non-serializable value", () => {
       const f = () => {
         return "some value";
       };
       const b = estimateBytes(f);
-      expect(b).toEqual(0);
+      expect(b).toBeNull();
+    });
+
+    it("counts small values and UTF-8 emoji accurately", () => {
+      expect(estimateBytes(1)).toBe(1);
+      expect(estimateBytes("😀")).toBe(6);
+      expect(estimateJsonBytes({ hello: true })).toEqual({
+        method: "json-utf8",
+        bytes: 14,
+        reason: null,
+      });
+    });
+
+    it("marks unsupported nested and Flight values as unavailable", () => {
+      const circular: { self?: unknown } = {};
+      circular.self = circular;
+      for (const value of [
+        circular,
+        new Map(),
+        new Set(),
+        1n,
+        Promise.resolve(1),
+        new Date(),
+        undefined,
+        { fn: () => 1 },
+        { value: Infinity },
+      ]) {
+        expect(estimateJsonBytes(value).bytes).toBeNull();
+        expect(estimateJsonBytes(value).reason).toEqual(expect.any(String));
+      }
+      const shared = { value: 1 };
+      expect(estimateBytes([shared, shared])).toBe(25);
     });
   });
 

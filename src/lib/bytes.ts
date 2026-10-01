@@ -1,18 +1,47 @@
-/**
- * Estimates the size in bytes of a given value or expression.
- *
- * @param value - The value to estimate the size of.
- * @returns The estimated size in bytes.
- */
-export const estimateBytes = (value: unknown): number => {
-  try {
-    const serialized = JSON.stringify(value);
-    const bytes = new Blob([...serialized]).size; // Good enough
-    return bytes < 10 ? 0 : bytes; // Ignore very small objects
-  } catch (error) {
-    return 0; // If it can't serialize just return 0, we don't care. React will throw the error at runtime
+export type JsonEstimate =
+  | { method: "json-utf8"; bytes: number; reason: null }
+  | { method: "json-utf8"; bytes: null; reason: string };
+
+/** JSON UTF-8 estimate for plain data. This does not measure React Flight. */
+export function estimateJsonBytes(value: unknown): JsonEstimate {
+  const ancestors = new WeakSet<object>();
+  function validate(item: unknown): void {
+    if (item === null || typeof item === "string" || typeof item === "boolean")
+      return;
+    if (typeof item === "number" && Number.isFinite(item)) return;
+    if (typeof item !== "object" || !item)
+      throw new Error("Value is not plain JSON data");
+    if (ancestors.has(item))
+      throw new Error("Circular data has no JSON estimate");
+    if (
+      !Array.isArray(item) &&
+      Object.getPrototypeOf(item) !== Object.prototype &&
+      Object.getPrototypeOf(item) !== null
+    )
+      throw new Error("Non-plain objects have no JSON estimate");
+    if (Object.getOwnPropertySymbols(item).length)
+      throw new Error("Symbol properties have no JSON estimate");
+    ancestors.add(item);
+    for (const child of Array.isArray(item) ? item : Object.values(item))
+      validate(child);
+    ancestors.delete(item);
   }
-};
+  try {
+    validate(value);
+    const bytes = new TextEncoder().encode(JSON.stringify(value)).byteLength;
+    return { method: "json-utf8", bytes, reason: null };
+  } catch {
+    return {
+      method: "json-utf8",
+      bytes: null,
+      reason:
+        "Value is unsupported, circular, or could not be serialized as plain JSON",
+    };
+  }
+}
+
+export const estimateBytes = (value: unknown): number | null =>
+  estimateJsonBytes(value).bytes;
 
 /**
  * Formats a given number of bytes into a human-readable string with the specified number of decimal places.
