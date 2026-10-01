@@ -5,6 +5,12 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": "./dist/index.js",
     "./components": "./dist/components/index.js"
@@ -22,6 +28,7 @@
     "lint": "biome lint src",
     "format": "biome format src --write",
     "test": "jest",
+    "typecheck": "tsc --noEmit --incremental false",
     "rsckit:analyze": "./bin/cli.cjs analyze",
     "rsckit:report": "./bin/cli.cjs report",
     "prepare": "husky"
@@ -35,32 +42,37 @@
   "license": "MIT",
   "author": "Phil Zona <phil.zona@vercel.com>",
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@types/jest": "^29.5.14",
+    "@biomejs/biome": "^2.5.15",
+    "@types/jest": "^30.0.0",
     "@types/jscodeshift": "^0.12.0",
-    "@types/node": "^22.10.5",
-    "@types/react": "^19.0.3",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
     "husky": "^9.1.7",
-    "jest": "^29.7.0",
+    "jest": "^30.5.2",
+    "react-dom": "^19.3.0",
     "sonda": "^0.7.1",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "ts-jest": "^29.4.14",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1"
   },
   "dependencies": {
+    "@devframes/agentic": "1.1.0",
     "@root/walk": "^1.1.0",
-    "@swc/core": "^1.10.18",
-    "chalk": "^5.4.1",
-    "commander": "^13.0.0",
-    "dependency-tree": "^11.0.1",
-    "detective-typescript": "^14.0.0",
-    "filing-cabinet": "^5.0.3",
-    "globby": "^14.0.2",
-    "jscodeshift": "^17.1.1",
-    "react": "^19.0.0",
-    "tasuku": "^2.0.2",
-    "zod": "^3.24.2"
+    "@swc/core": "^1.16.13",
+    "chalk": "^5.6.2",
+    "commander": "^13.1.0",
+    "dependency-tree": "^11.5.0",
+    "detective-typescript": "^14.1.2",
+    "devframe": "1.1.0",
+    "filing-cabinet": "^5.5.1",
+    "globby": "^14.1.0",
+    "jscodeshift": "^17.4.0",
+    "react": "^19.3.0",
+    "tasuku": "^2.3.0",
+    "zod": "^4.6.5"
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

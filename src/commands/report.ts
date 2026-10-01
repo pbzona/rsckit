@@ -157,20 +157,14 @@ export const report = async (options: Options) => {
       if (boundaries && boundaries.length > 0) {
         console.log(`  ${chalk.yellow("Client Boundaries:")}`);
         for (const boundary of boundaries) {
-          const clientName = boundary.child
-            .split("/")
-            .slice(-2)
-            .join("/");
+          const clientName = boundary.child.split("/").slice(-2).join("/");
 
           let size = 0;
           let treeSize = 0;
           try {
             const file = await project.getSourceFile(boundary.child);
             size = file?.size || 0;
-            treeSize = await calculateTreeSize(
-              project,
-              boundary.child,
-            );
+            treeSize = await calculateTreeSize(project, boundary.child);
           } catch {}
           const sizeLabel = chalk.gray(
             ` (Size: ${formatBytes(size)}, Total: ${formatBytes(treeSize)})`,

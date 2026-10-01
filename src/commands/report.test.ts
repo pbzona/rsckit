@@ -93,9 +93,7 @@ describe("report command", () => {
     const mockPages = [
       { filePath: "page.tsx", useClient: false, dependencies: ["parent.tsx"] },
     ];
-    const mockBoundaries = [
-      { parent: "page.tsx", child: "parent.tsx" },
-    ];
+    const mockBoundaries = [{ parent: "page.tsx", child: "parent.tsx" }];
 
     mockProject.getAllCachedFiles.mockReturnValue([
       { isPage: true, filePath: "page.tsx" },
@@ -149,9 +147,7 @@ describe("report command", () => {
     const mockPages = [
       { filePath: "page.tsx", useClient: false, dependencies: ["parent.tsx"] },
     ];
-    const mockBoundaries = [
-      { parent: "page.tsx", child: "parent.tsx" },
-    ];
+    const mockBoundaries = [{ parent: "page.tsx", child: "parent.tsx" }];
 
     mockProject.getAllCachedFiles.mockReturnValue([
       { isPage: true, filePath: "page.tsx" },
