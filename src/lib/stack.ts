@@ -9,7 +9,7 @@ export class Stack<T> {
     this.values.push(v);
   }
 
-  pop(): T {
+  pop(): T | undefined {
     return this.values.pop();
   }
 

@@ -7,7 +7,10 @@ import { registerReportCommand } from "./commands/report";
 async function main() {
   const program = new Command();
 
-  program.name("rsckit").description("CLI for analyzing your Next.js project");
+  program
+    .name("rsckit")
+    .description("Inspect Next.js App Router client boundaries")
+    .version("0.0.1");
 
   registerAnalyzeCommand(program);
   registerReportCommand(program);
@@ -16,8 +19,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  if (error instanceof Error) {
-    throw error;
-  }
-  console.error(error);
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
 });

@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "jsx": "react",
-    "strict": false,
+    "strict": true,
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "forceConsistentCasingInFileNames": true,

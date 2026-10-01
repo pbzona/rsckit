@@ -12,7 +12,7 @@ export function withPropInspector<P extends object>(
 ) {
   let _shouldNotify = false;
   const _results = {
-    isPropLarge: {},
+    isPropLarge: {} as Record<string, string | null>,
   };
 
   return function WithPropInspector(props: P) {

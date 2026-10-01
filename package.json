@@ -13,7 +13,11 @@
   ],
   "exports": {
     ".": "./dist/index.js",
-    "./components": "./dist/components/index.js"
+    "./components": "./dist/components/index.js",
+    "./analysis": {
+      "types": "./dist/analysis/index.d.ts",
+      "import": "./dist/analysis/index.js"
+    }
   },
   "bin": {
     "rsckit": "./dist/cli.js"
@@ -29,8 +33,8 @@
     "format": "biome format src --write",
     "test": "jest",
     "typecheck": "tsc --noEmit --incremental false",
-    "rsckit:analyze": "./bin/cli.cjs analyze",
-    "rsckit:report": "./bin/cli.cjs report",
+    "rsckit:analyze": "node dist/cli.js analyze",
+    "rsckit:report": "node dist/cli.js report",
     "prepare": "husky"
   },
   "keywords": [
@@ -44,7 +48,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
     "@types/jest": "^30.0.0",
-    "@types/jscodeshift": "^0.12.0",
     "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19",
@@ -55,23 +58,15 @@
     "sonda": "^0.7.1",
     "ts-jest": "^29.4.14",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
     "vite": "^8.3.1"
   },
   "dependencies": {
     "@devframes/agentic": "1.1.0",
-    "@root/walk": "^1.1.0",
-    "@swc/core": "^1.16.13",
     "chalk": "^5.6.2",
     "commander": "^13.1.0",
-    "dependency-tree": "^11.5.0",
-    "detective-typescript": "^14.1.2",
     "devframe": "1.1.0",
-    "filing-cabinet": "^5.5.1",
-    "globby": "^14.1.0",
-    "jscodeshift": "^17.4.0",
     "react": "^19.3.0",
-    "tasuku": "^2.3.0",
+    "typescript": "^5.9.3",
     "zod": "^4.6.5"
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"

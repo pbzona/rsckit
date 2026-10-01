@@ -1,88 +1,31 @@
-import * as path from "node:path";
-import { Config } from "@/config";
-import { Project } from "@/project/project";
 import { analyze } from "./analyze";
-
-// Mock globby to prevent ESM issues
-jest.mock("globby", () => ({
-  globby: jest.fn(),
-}));
-
-// Mock chalk to prevent ESM issues
-jest.mock("chalk", () => {
-  return {
-    gray: (msg: string) => msg,
-    green: (msg: string) => msg,
-    yellow: (msg: string) => msg,
-    red: (msg: string) => msg,
-    bold: (msg: string) => msg,
-  };
+import { analyzeProject, saveSnapshot } from "@/analysis";
+import { testSnapshot } from "@/analysis/test-snapshot";
+jest.mock("@/analysis");
+afterEach(() => {
+  jest.restoreAllMocks();
+  process.exitCode = 0;
 });
 
-// Mock the Project class
-jest.mock("@/project/project");
+it("prints machine-readable JSON without progress noise", async () => {
+  const snapshot = testSnapshot();
+  jest.mocked(analyzeProject).mockResolvedValue(snapshot);
+  jest.mocked(saveSnapshot).mockResolvedValue("/project/.rsckit/snapshot.json");
+  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  await analyze({ json: true, root: "/project" });
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(log.mock.calls[0][0])).toEqual(snapshot);
+  expect(saveSnapshot).toHaveBeenCalledWith(snapshot, undefined);
+});
 
-describe("analyze command", () => {
-  let consoleLogSpy: jest.SpyInstance;
-  let consoleErrorSpy: jest.SpyInstance;
-  let processChdirSpy: jest.SpyInstance;
-
-  const mockProject = {
-    restoreCache: jest.fn(),
-    analyze: jest.fn(),
-    saveCache: jest.fn(),
-    getSourceFile: jest.fn(),
-  };
-
-  beforeEach(() => {
-    consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    processChdirSpy = jest.spyOn(process, "chdir").mockImplementation(() => {});
-
-    (Project as jest.Mock).mockImplementation(() => mockProject);
-
-    // Default mock return values
-    mockProject.analyze.mockResolvedValue({
-      pages: [],
-      routes: [],
-      clientBoundaries: [],
-    });
+it("propagates analysis failures and marks partial snapshots as failures", async () => {
+  jest.mocked(analyzeProject).mockRejectedValueOnce(new Error("missing root"));
+  await expect(analyze()).rejects.toThrow("missing root");
+  jest.mocked(analyzeProject).mockResolvedValueOnce({
+    ...testSnapshot(),
+    diagnostics: [{ level: "error", code: "read-error", message: "failed" }],
   });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it("runs analysis and saves cache", async () => {
-    await analyze({ skipCache: true });
-
-    expect(mockProject.analyze).toHaveBeenCalled();
-    expect(mockProject.saveCache).toHaveBeenCalled();
-  });
-
-  it("shows spinner when verbose is false", async () => {
-    await analyze({ skipCache: true, verbose: false });
-    // Checking if ora was called would require importing the mock,
-    // but functionality is implicitly tested by it running without error
-    // and not logging verbose output.
-  });
-
-  it("does NOT output JSON or summary", async () => {
-    const mockResult = {
-      pages: [{ filePath: "page.tsx", useClient: false, dependencies: [] }],
-      routes: ["/"],
-      clientBoundaries: [],
-    };
-    mockProject.analyze.mockResolvedValue(mockResult);
-
-    await analyze({ skipCache: true });
-
-    // Should verify that "Analysis Summary" etc are NOT printed
-    const allCalls = consoleLogSpy.mock.calls.map((c) => c[0]).join("");
-    expect(allCalls).not.toContain("Analysis Summary");
-    expect(allCalls).not.toContain("Client Boundaries");
-
-    // It should print "Run 'report' to see results."
-    expect(allCalls).toContain("Run 'report' to see results.");
-  });
+  jest.spyOn(console, "log").mockImplementation(() => {});
+  await analyze();
+  expect(process.exitCode).toBe(1);
 });

@@ -17,7 +17,7 @@ export const getAppDirFromRoot = async (root: string) => {
       ? path.resolve(root, "app")
       : path.resolve(root, "src/app");
   } catch (error) {
-    printError(error);
+    printError(String(error));
     if (error instanceof Error) {
       throw error;
     }

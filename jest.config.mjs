@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 export default {
   preset: "ts-jest",
+  transform: { "^.+\\.tsx?$": ["ts-jest", { tsconfig: { module: "CommonJS", moduleResolution: "node" } }] },
   testEnvironment: "node",
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   moduleFileExtensions: ["ts", "tsx", "js", "json", "node"],
