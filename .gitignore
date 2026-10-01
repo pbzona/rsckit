@@ -22,11 +22,11 @@ coverage/
 tmp/
 rsckit/*.json
 .rsckit
+/_internal/
 
 # Sonda (build viz)
 sonda-report.html
 
 # Annoying
 .DS_Store
-
 
