@@ -59,7 +59,7 @@ describe("AnalysisSession", () => {
     expect(analyze).toHaveBeenCalledTimes(2);
   });
 
-  it("watches added, modified, and removed source files", async () => {
+  it("watches modified source files", async () => {
     await session.startWatching();
     const updated = new Promise<void>((resolve) =>
       session.subscribe(() => resolve()),
