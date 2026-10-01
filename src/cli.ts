@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import { registerAnalyzeCommand } from "./commands/analyze";
 import { registerReportCommand } from "./commands/report";
+import { registerMcpCommand } from "./commands/mcp";
 
 async function main() {
   const program = new Command();
@@ -14,6 +15,7 @@ async function main() {
 
   registerAnalyzeCommand(program);
   registerReportCommand(program);
+  registerMcpCommand(program);
 
   await program.parseAsync(process.argv);
 }

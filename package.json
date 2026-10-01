@@ -12,8 +12,19 @@
     "dist"
   ],
   "exports": {
-    ".": "./dist/index.js",
-    "./components": "./dist/components/index.js",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js"
+    },
+    "./devframe": {
+      "types": "./dist/devframe/index.d.ts",
+      "import": "./dist/devframe/index.js"
+    },
+    "./package.json": "./package.json",
     "./analysis": {
       "types": "./dist/analysis/index.d.ts",
       "import": "./dist/analysis/index.js"
@@ -63,6 +74,7 @@
   "dependencies": {
     "@devframes/agentic": "1.1.0",
     "chalk": "^5.6.2",
+    "chokidar": "^4.0.3",
     "commander": "^13.1.0",
     "devframe": "1.1.0",
     "react": "^19.3.0",
