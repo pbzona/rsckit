@@ -12,7 +12,7 @@ async function main() {
 
   program
     .name("rsckit")
-    .description("Inspect Next.js App Router client boundaries")
+    .description("Inspect Next.js App Router source and client boundaries")
     .version("0.0.1");
 
   registerAnalyzeCommand(program);
